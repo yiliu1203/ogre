@@ -1,4 +1,4 @@
- %module(directors="1") Ogre
+ %module(package="Ogre", directors="1") Ogre
  %{
  /* Includes the header in the wrapper code */
 #include "Ogre.h"
@@ -456,11 +456,11 @@ SHARED_PTR(Material);
 %rename(MaterialManager_Listener) Ogre::MaterialManager::Listener;
 %include "OgreMaterialManager.h"
 %include "OgreRenderable.h"
+%include "OgreShadowCaster.h"
+%include "OgreMovableObject.h"
     %include "OgreBillboardChain.h"
         %include "OgreRibbonTrail.h"
     %include "OgreBillboardSet.h"
-%include "OgreShadowCaster.h"
-%include "OgreMovableObject.h"
     %include "OgreMovablePlane.h"
     %ignore Ogre::Light::setPosition;
     %ignore Ogre::Light::getPosition;
