@@ -65,11 +65,8 @@ public:
     SSAOGBufferSchemeHandler()
     {
         mGBufRefMat = Ogre::MaterialManager::getSingleton().getByName("SSAO/GBuffer");
-    }
-
-    virtual ~SSAOGBufferSchemeHandler()
-    {
-        mGBufRefMat.reset();
+        RTShader::ShaderGenerator::getSingleton().validateMaterial("GBuffer", "SSAO/GBuffer");
+        mGBufRefMat->load();
     }
 
     /** @copydoc MaterialManager::Listener::handleSchemeNotFound */
@@ -80,7 +77,7 @@ public:
             Technique* gBufferTech = originalMaterial->createTechnique();
             gBufferTech->setSchemeName(schemeName);
             Ogre::Pass* gbufPass = gBufferTech->createPass();
-            *gbufPass = *mGBufRefMat->getTechnique(0)->getPass(0);
+            *gbufPass = *mGBufRefMat->getBestTechnique()->getPass(0);
             return gBufferTech;
     }
 private:
@@ -171,11 +168,6 @@ public:
     
     void testCapabilities(const RenderSystemCapabilities* caps)
     {
-        if (!caps->hasCapability(RSC_VERTEX_PROGRAM) || !caps->hasCapability(RSC_FRAGMENT_PROGRAM))
-        {
-            OGRE_EXCEPT(Exception::ERR_NOT_IMPLEMENTED, "Your graphics card does not support vertex and fragment"
-                        " programs, so you cannot run this sample. Sorry!", "Sample_SSAO::testCapabilities");
-        }
 		if (StringUtil::startsWith(caps->getRenderSystemName(), "OpenGL ES"))
         {
             OGRE_EXCEPT(Exception::ERR_INVALID_STATE, "This demo currently only supports OpenGL and DirectX9. Sorry!",

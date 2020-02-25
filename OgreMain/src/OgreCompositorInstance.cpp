@@ -37,6 +37,7 @@ THE SOFTWARE.
 #include "OgreRenderTarget.h"
 #include "OgreRenderTexture.h"
 #include "OgreRectangle2D.h"
+#include "OgreDepthBuffer.h"
 
 namespace Ogre {
 CompositorInstance::CompositorInstance(CompositionTechnique *technique,
@@ -686,8 +687,8 @@ void CompositorInstance::createResources(bool forResizeOnly)
             
         } else {
             /// Determine width and height
-            size_t width = def->width;
-            size_t height = def->height;
+            uint32 width = def->width;
+            uint32 height = def->height;
             uint fsaa = 0;
             String fsaaHint;
             bool hwGamma = false;
@@ -701,14 +702,12 @@ void CompositorInstance::createResources(bool forResizeOnly)
             
             if(width == 0)
             {
-                width = static_cast<size_t>(
-                                            static_cast<float>(mChain->getViewport()->getActualWidth()) * def->widthFactor);
+                width = static_cast<float>(mChain->getViewport()->getActualWidth()) * def->widthFactor;
                 width = width == 0 ? 1 : width;
             }
             if(height == 0)
             {
-                height = static_cast<size_t>(
-                                             static_cast<float>(mChain->getViewport()->getActualHeight()) * def->heightFactor);
+                height = static_cast<float>(mChain->getViewport()->getActualHeight()) * def->heightFactor;
                 height = height == 0 ? 1 : height;
             }
             
@@ -798,8 +797,8 @@ void CompositorInstance::createResources(bool forResizeOnly)
                 mLocalTextures[def->name] = tex;
             }
         }
-        
-        if(!PixelUtil::isDepth(rendTarget->suggestPixelFormat()))
+
+        if(rendTarget->getDepthBufferPool() != DepthBuffer::POOL_NO_DEPTH)
         {
             //Set DepthBuffer pool for sharing
             rendTarget->setDepthBufferPool( def->depthBufferId );
@@ -1021,6 +1020,48 @@ RenderTarget* CompositorInstance::getRenderTarget(const String& name)
 {
     return getTargetForTex(name);
 }
+
+CompositionTechnique::TextureDefinition*
+CompositorInstance::resolveTexReference(const CompositionTechnique::TextureDefinition* texDef)
+{
+    //This TextureDefinition is reference.
+    //Since referenced TD's have no info except name we have to find original TD
+
+    CompositionTechnique::TextureDefinition* refTexDef = 0;
+
+    //Try chain first
+    if(mChain)
+    {
+        CompositorInstance* refCompInst = mChain->getCompositor(texDef->refCompName);
+        if(!refCompInst)
+            OGRE_EXCEPT(Exception::ERR_ITEM_NOT_FOUND, "Referencing non-existent compositor");
+
+        refTexDef = refCompInst->getCompositor()->getSupportedTechnique(
+            refCompInst->getScheme())->getTextureDefinition(texDef->refTexName);
+    }
+
+    if(!refTexDef)
+    {
+        //Still NULL. Try global search.
+        const CompositorPtr &refComp = CompositorManager::getSingleton().getByName(texDef->refCompName);
+        if(refComp)
+        {
+            refTexDef = refComp->getSupportedTechnique()->getTextureDefinition(texDef->refTexName);
+        }
+    }
+
+    if(!refTexDef)
+    {
+        OGRE_EXCEPT(Exception::ERR_ITEM_NOT_FOUND, "Referencing non-existent compositor texture");
+    }
+
+    if (refTexDef->scope == CompositionTechnique::TS_LOCAL)
+        OGRE_EXCEPT(Exception::ERR_INVALIDPARAMS,
+                    "Referenced texture '" + texDef->refTexName + "' has only local scope");
+
+    return refTexDef;
+}
+
 //-----------------------------------------------------------------------
 RenderTarget *CompositorInstance::getTargetForTex(const String &name)
 {
@@ -1038,50 +1079,8 @@ RenderTarget *CompositorInstance::getTargetForTex(const String &name)
     CompositionTechnique::TextureDefinition* texDef = mTechnique->getTextureDefinition(name);
     if (texDef != 0 && !texDef->refCompName.empty()) 
     {
-        //This TextureDefinition is reference.
-        //Since referenced TD's have no info except name we have to find original TD
-        
-        CompositionTechnique::TextureDefinition* refTexDef = 0;
-        
-        //Try chain first
-        if(mChain)
-        {
-            CompositorInstance* refCompInst = mChain->getCompositor(texDef->refCompName);
-            if(refCompInst)
-            {
-                refTexDef = refCompInst->getCompositor()->getSupportedTechnique(
-                    refCompInst->getScheme())->getTextureDefinition(texDef->refTexName);
-                // if the texture with the reference name can not be found, try the name
-                if (refTexDef == 0)
-                {
-                    refTexDef = refCompInst->getCompositor()->getSupportedTechnique(
-                        refCompInst->getScheme())->getTextureDefinition(name);
-                }
-            }
-            else
-            {
-                OGRE_EXCEPT(Exception::ERR_ITEM_NOT_FOUND, "Referencing non-existent compositor",
-                            "CompositorInstance::getTargetForTex");
-            }
-        }
-        
-        if(refTexDef == 0)
-        {
-            //Still NULL. Try global search.
-            const CompositorPtr &refComp = CompositorManager::getSingleton().getByName(texDef->refCompName);
-            if(refComp)
-            {
-                refTexDef = refComp->getSupportedTechnique()->getTextureDefinition(name);
-            }
-        }
-        
-        if(refTexDef == 0)
-        {
-            //Still NULL
-            OGRE_EXCEPT(Exception::ERR_ITEM_NOT_FOUND, "Referencing non-existent compositor texture",
-                        "CompositorInstance::getTargetForTex");
-        }
-        
+        auto refTexDef = resolveTexReference(texDef);
+
         switch(refTexDef->scope) 
         {
             case CompositionTechnique::TS_CHAIN:
@@ -1129,9 +1128,7 @@ RenderTarget *CompositorInstance::getTargetForTex(const String &name)
                 return refComp->getRenderTarget(texDef->refTexName);
             }
             case CompositionTechnique::TS_LOCAL:
-            default:
-                OGRE_EXCEPT(Exception::ERR_INVALIDPARAMS, "Referencing local compositor texture",
-                    "CompositorInstance::getTargetForTex");
+                break; // handled by resolveTexReference
         }
     }
 
@@ -1152,43 +1149,7 @@ const String &CompositorInstance::getSourceForTex(const String &name, size_t mrt
     //Check if texture definition is reference
     if(!texDef->refCompName.empty())
     {
-        //This TextureDefinition is reference.
-        //Since referenced TD's have no info except name we have to find original TD
-        
-        CompositionTechnique::TextureDefinition* refTexDef = 0;
-        
-        //Try chain first
-        if(mChain)
-        {
-            CompositorInstance* refCompInst = mChain->getCompositor(texDef->refCompName);
-            if(refCompInst)
-            {
-                refTexDef = refCompInst->getCompositor()->
-                    getSupportedTechnique(refCompInst->getScheme())->getTextureDefinition(texDef->refTexName);
-            }
-            else
-            {
-                OGRE_EXCEPT(Exception::ERR_ITEM_NOT_FOUND, "Referencing non-existent compositor",
-                            "CompositorInstance::getSourceForTex");
-            }
-        }
-        
-        if(refTexDef == 0)
-        {
-            //Still NULL. Try global search.
-            const CompositorPtr &refComp = CompositorManager::getSingleton().getByName(texDef->refCompName);
-            if(refComp)
-            {
-                refTexDef = refComp->getSupportedTechnique()->getTextureDefinition(texDef->refTexName);
-            }
-        }
-        
-        if(refTexDef == 0)
-        {
-            //Still NULL
-            OGRE_EXCEPT(Exception::ERR_ITEM_NOT_FOUND, "Referencing non-existent compositor texture",
-                        "CompositorInstance::getSourceForTex");
-        }
+        auto refTexDef = resolveTexReference(texDef);
         
         switch(refTexDef->scope)
         {
@@ -1237,9 +1198,7 @@ const String &CompositorInstance::getSourceForTex(const String &name, size_t mrt
                 return refComp->getTextureInstanceName(texDef->refTexName, mrtIndex);
             }
             case CompositionTechnique::TS_LOCAL:
-            default:
-                OGRE_EXCEPT(Exception::ERR_INVALIDPARAMS, "Referencing local compositor texture",
-                    "CompositorInstance::getSourceForTex");
+                break; // handled by resolveTexReference
         }
 
     } // End of handling texture references

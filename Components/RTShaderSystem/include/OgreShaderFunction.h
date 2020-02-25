@@ -48,6 +48,7 @@ class _OgreRTSSExport FunctionStageRef
 public:
     /** call a library function
      * @param name the function name
+     * @param inout function argument
      */
     void callFunction(const char* name, const InOut& inout) const;
 
@@ -73,6 +74,22 @@ public:
     void assign(const In& from, const Out& to) const { assign({from, to}); }
     /// @overload
     void assign(const std::vector<Operand>& params) const;
+
+    /// dst = arg0 * arg1;
+    void mul(const In& arg0, const In& arg1, const Out& dst) const { binaryOp('*', {arg0, arg1, dst}); }
+
+    /// dst = arg0 / arg1;
+    void div(const In& arg0, const In& arg1, const Out& dst) const { binaryOp('/', {arg0, arg1, dst}); }
+
+    /// dst = arg0 - arg1;
+    void sub(const In& arg0, const In& arg1, const Out& dst) const { binaryOp('-', {arg0, arg1, dst}); }
+
+    /// dst = arg0 + arg1;
+    void add(const In& arg0, const In& arg1, const Out& dst) const { binaryOp('+', {arg0, arg1, dst}); }
+
+    /// dst = arg0 OP arg1;
+    void binaryOp(char op, const std::vector<Operand>& params) const;
+
 private:
     size_t mStage;
     Function* mParent;
@@ -86,13 +103,11 @@ class _OgreRTSSExport Function : public RTShaderSystemAlloc
     friend ProgramManager;
 // Interface.
 public:
+    /// @deprecated do not use
     enum FunctionType
     {
-        // internal function (default)
         FFT_INTERNAL,
-        // Vertex program main
         FFT_VS_MAIN,
-        // Pixel shader main
         FFT_PS_MAIN
     };
 
@@ -125,6 +140,7 @@ public:
     /**
      * get input parameter by content
      * @param content
+     * @param type The type of the desired parameter.
      * @return parameter or NULL if not found
      */
     ParameterPtr getInputParameter(Parameter::Content content, GpuConstantType type = GCT_UNKNOWN)
@@ -148,6 +164,7 @@ public:
     /**
      * get output parameter by content
      * @param content
+     * @param type The type of the desired parameter.
      * @return parameter or NULL if not found
      */
     ParameterPtr getOutputParameter(Parameter::Content content, GpuConstantType type = GCT_UNKNOWN)
@@ -196,22 +213,6 @@ public:
         return _getParameterByName(mLocalParameters, name);
     }
 
-    /// @deprecated do not use
-    OGRE_DEPRECATED static ParameterPtr getParameterByName(const ShaderParameterList& parameterList, const String& name)
-    {
-        return _getParameterByName(parameterList, name);
-    }
-    /// @deprecated do not use
-    OGRE_DEPRECATED static ParameterPtr getParameterBySemantic(const ShaderParameterList& parameterList, const Parameter::Semantic semantic, int index)
-    {
-        return _getParameterBySemantic(parameterList, semantic, index);
-    }
-    /// @deprecated use getInputParameter / getOutputParameter / getLocalParameter instead
-    OGRE_DEPRECATED static ParameterPtr getParameterByContent(const ShaderParameterList& parameterList, const Parameter::Content content, GpuConstantType type)
-    {
-        return _getParameterByContent(parameterList, content, type);
-    }
-
     /** Return a list of input parameters. */
     const ShaderParameterList& getInputParameters() const { return mInputParameters; }  
 
@@ -225,9 +226,6 @@ public:
     @param atomInstance The atom instance to add.
     */
     void addAtomInstance(FunctionAtom* atomInstance);
-
-    /// @deprecated use FunctionStageRef::assign instead
-    OGRE_DEPRECATED void addAtomAssign(ParameterPtr lhs, ParameterPtr rhs, int groupOrder);
 
     /// get a @ref FFPShaderStage of this function
     FunctionStageRef getStage(size_t s)
@@ -261,8 +259,8 @@ public:
     /** Delete all output parameters from this function. */
     void deleteAllOutputParameters();
 
-    /** get function type. */
-    FunctionType getFunctionType() const;
+    /// @deprecated do not use
+    OGRE_DEPRECATED FunctionType getFunctionType() const;
 
 
 protected:

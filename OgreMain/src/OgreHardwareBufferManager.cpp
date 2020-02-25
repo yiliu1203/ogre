@@ -154,8 +154,7 @@ namespace Ogre {
     {
             OGRE_LOCK_MUTEX(mTempBuffersMutex);
         // Add copy to free temporary vertex buffers
-        mFreeTempVertexBufferMap.insert(
-            FreeTemporaryVertexBufferMap::value_type(sourceBuffer.get(), copy));
+        mFreeTempVertexBufferMap.emplace(sourceBuffer.get(), copy);
     }
     //-----------------------------------------------------------------------
     HardwareVertexBufferSharedPtr 
@@ -198,10 +197,9 @@ namespace Ogre {
             }
 
             // Insert copy into licensee list
-            mTempVertexBufferLicenses.insert(
-                TemporaryVertexBufferLicenseMap::value_type(
+            mTempVertexBufferLicenses.emplace(
                     vbuf.get(),
-                    VertexBufferLicense(sourceBuffer.get(), licenseType, EXPIRED_DELAY_FRAME_THRESHOLD, vbuf, licensee)));
+                    VertexBufferLicense(sourceBuffer.get(), licenseType, EXPIRED_DELAY_FRAME_THRESHOLD, vbuf, licensee));
             return vbuf;
         }
 
@@ -220,8 +218,7 @@ namespace Ogre {
 
             vbl.licensee->licenseExpired(vbl.buffer.get());
 
-            mFreeTempVertexBufferMap.insert(
-                FreeTemporaryVertexBufferMap::value_type(vbl.originalBufferPtr, vbl.buffer));
+            mFreeTempVertexBufferMap.emplace(vbl.originalBufferPtr, vbl.buffer);
             mTempVertexBufferLicenses.erase(i);
         }
     }
@@ -292,8 +289,7 @@ namespace Ogre {
             {
                 vbl.licensee->licenseExpired(vbl.buffer.get());
 
-                mFreeTempVertexBufferMap.insert(
-                    FreeTemporaryVertexBufferMap::value_type(vbl.originalBufferPtr, vbl.buffer));
+                mFreeTempVertexBufferMap.emplace(vbl.originalBufferPtr, vbl.buffer);
                 mTempVertexBufferLicenses.erase(icur);
             }
         }
@@ -415,6 +411,22 @@ namespace Ogre {
     //-----------------------------------------------------------------------
     void HardwareBufferManagerBase::_notifyCounterBufferDestroyed(HardwareCounterBuffer* buf)
     {
+    }
+    RenderToVertexBufferSharedPtr HardwareBufferManagerBase::createRenderToVertexBuffer()
+    {
+        OGRE_EXCEPT(Exception::ERR_RENDERINGAPI_ERROR, "not supported by RenderSystem");
+    }
+    HardwareUniformBufferSharedPtr
+    HardwareBufferManagerBase::createUniformBuffer(size_t sizeBytes, HardwareBuffer::Usage usage,
+                                                   bool useShadowBuffer, const String& name)
+    {
+        OGRE_EXCEPT(Exception::ERR_RENDERINGAPI_ERROR, "not supported by RenderSystem");
+    }
+    HardwareUniformBufferSharedPtr
+    HardwareBufferManagerBase::createCounterBuffer(size_t sizeBytes, HardwareBuffer::Usage usage,
+                                                   bool useShadowBuffer, const String& name)
+    {
+        OGRE_EXCEPT(Exception::ERR_RENDERINGAPI_ERROR, "not supported by RenderSystem");
     }
     //-----------------------------------------------------------------------
     HardwareVertexBufferSharedPtr 

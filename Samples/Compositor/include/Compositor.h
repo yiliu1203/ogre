@@ -116,6 +116,10 @@ void Sample_Compositor::setupContent(void)
     compMgr.registerCompositorLogic("HDR", mCompositorLogics["HDR"]);
     compMgr.registerCompositorLogic("HeatVision", mCompositorLogics["HeatVision"]);
 
+#ifdef OGRE_BUILD_COMPONENT_RTSHADERSYSTEM
+    mShaderGenerator->createScheme("HDR"); // make sure HDR viewport is handled
+#endif
+
     createTextures();
     /// Create a couple of hard coded postfilter effects as an example of how to do it
     /// but the preferred method is to use compositor scripts.
@@ -397,12 +401,13 @@ void Sample_Compositor::setupScene(void)
     mSceneMgr->setAmbientLight(Ogre::ColourValue(0.3, 0.3, 0.2));
 
     Ogre::Light* l = mSceneMgr->createLight("Light2");
-    Ogre::Vector3 dir(-1,-1,0);
-    dir.normalise();
     l->setType(Ogre::Light::LT_DIRECTIONAL);
-    l->setDirection(dir);
     l->setDiffuseColour(1, 1, 0.8);
     l->setSpecularColour(1, 1, 1);
+
+    auto ln = mSceneMgr->getRootSceneNode()->createChildSceneNode();
+    ln->setDirection(Vector3(-1,-1,0).normalisedCopy());
+    ln->attachObject(l);
 
 
     Ogre::Entity* pEnt;

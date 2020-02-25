@@ -74,7 +74,7 @@ namespace Ogre {
         GCT_SAMPLER2D = BCT_SAMPLER + 2,
         GCT_SAMPLER3D = BCT_SAMPLER + 3,
         GCT_SAMPLERCUBE = BCT_SAMPLER + 4,
-        GCT_SAMPLERRECT = BCT_SAMPLER +5,
+        GCT_SAMPLERRECT = BCT_SAMPLER +5, //!< @deprecated do not use
         GCT_SAMPLER1DSHADOW = BCT_SAMPLER + 6,
         GCT_SAMPLER2DSHADOW = BCT_SAMPLER + 7,
         GCT_SAMPLER2DARRAY = BCT_SAMPLER + 8,
@@ -142,8 +142,6 @@ namespace Ogre {
     */
     struct _OgreExport GpuConstantDefinition
     {
-        /// Data type
-        GpuConstantType constType;
         /// Physical start index in buffer (either float, double, int, or uint buffer)
         size_t physicalIndex;
         /// Logical index - used to communicate this constant to the rendersystem
@@ -153,6 +151,8 @@ namespace Ogre {
         size_t elementSize;
         /// Length of array
         size_t arraySize;
+        /// Data type
+        GpuConstantType constType;
         /// How this parameter varies (bitwise combination of GpuProgramVariability)
         mutable uint16 variability;
 
@@ -296,11 +296,11 @@ namespace Ogre {
         }
 
     GpuConstantDefinition()
-        : constType(GCT_UNKNOWN)
-            , physicalIndex((std::numeric_limits<size_t>::max)())
+        : physicalIndex((std::numeric_limits<size_t>::max)())
             , logicalIndex(0)
             , elementSize(0)
             , arraySize(1)
+            , constType(GCT_UNKNOWN)
             , variability(GPV_GLOBAL) {}
     };
     typedef std::map<String, GpuConstantDefinition> GpuConstantDefinitionMap;
@@ -320,30 +320,15 @@ namespace Ogre {
 
         GpuNamedConstants() : floatBufferSize(0), doubleBufferSize(0), intBufferSize(0) {}
 
-        /** Generate additional constant entries for arrays based on a base definition.
-            @remarks
-            Array uniforms will be added just with their base name with no array
-            suffix. This method will add named entries for array suffixes too
-            so individual array entries can be addressed. Note that we only
-            individually index array elements if the array size is up to 16
-            entries in size. Anything larger than that only gets a [0] entry
-            as well as the main entry, to save cluttering up the name map. After
-            all, you can address the larger arrays in a bulk fashion much more
-            easily anyway.
-        */
-        void generateConstantDefinitionArrayEntries(const String& paramName,
+        /// @deprecated obsolete
+        OGRE_DEPRECATED void generateConstantDefinitionArrayEntries(const String& paramName,
                                                     const GpuConstantDefinition& baseDef);
 
-        /// Indicates whether all array entries will be generated and added to the definitions map
-        static bool getGenerateAllConstantDefinitionArrayEntries();
+        /// @deprecated obsolete
+        OGRE_DEPRECATED static bool getGenerateAllConstantDefinitionArrayEntries();
 
-        /** Sets whether all array entries will be generated and added to the definitions map.
-            @remarks
-            Usually, array entries can only be individually indexed if they're up to 16 entries long,
-            to save memory - arrays larger than that can be set but only via the bulk setting
-            methods. This option allows you to choose to individually index every array entry.
-        */
-        static void setGenerateAllConstantDefinitionArrayEntries(bool generateAll);
+        /// @deprecated obsolete
+        OGRE_DEPRECATED static void setGenerateAllConstantDefinitionArrayEntries(bool generateAll);
 
         /** Saves constant definitions to a file, compatible with GpuProgram::setManualNamedConstantsFile.
             @see GpuProgram::setManualNamedConstantsFile
@@ -457,6 +442,8 @@ namespace Ogre {
 
         /// Optional data the rendersystem might want to store.
         mutable Any mRenderSystemData;
+        /// Optional rendersystem backed storage
+        HardwareBufferPtr mHardwareBuffer;
 
         /// Not used when copying data, but might be useful to RS using shared buffers.
         size_t mFrameLastUpdated;
@@ -524,10 +511,8 @@ namespace Ogre {
         /// Get the frame in which this shared parameter set was last updated
         size_t getFrameLastUpdated() const { return mFrameLastUpdated; }
 
-        /** Gets an iterator over the named GpuConstantDefinition instances as defined
-            by the user.
-        */
-        GpuConstantDefinitionIterator getConstantDefinitionIterator(void) const;
+        /// @deprecated use getConstantDefinitions()
+        OGRE_DEPRECATED GpuConstantDefinitionIterator getConstantDefinitionIterator(void) const;
 
         /** Get a specific GpuConstantDefinition for a named parameter.
          */
@@ -583,19 +568,18 @@ namespace Ogre {
         const DoubleConstantList& getDoubleConstantList() const { return mDoubleConstants; }
         /// Get a reference to the list of int constants
         const IntConstantList& getIntConstantList() const { return mIntConstants; }
-        /// @deprecated use getIntConstantList
-        OGRE_DEPRECATED const UnsignedIntConstantList& getUnsignedIntConstantList() const
-        {
-            static UnsignedIntConstantList tmp;
-            tmp.clear();
-            tmp.insert(tmp.end(), mIntConstants.begin(), mIntConstants.end());
-            return tmp;
-        }
+        /// @deprecated use _setHardwareBuffer
+        OGRE_DEPRECATED void _setRenderSystemData(const Any& data) const { mRenderSystemData = data; }
+        /// @deprecated use _getHardwareBuffer
+        OGRE_DEPRECATED const Any& _getRenderSystemData() const { return mRenderSystemData; }
         /** Internal method that the RenderSystem might use to store optional data. */
-        void _setRenderSystemData(const Any& data) const { mRenderSystemData = data; }
+        void _setHardwareBuffer(const HardwareBufferPtr& data) { mHardwareBuffer = data; }
         /** Internal method that the RenderSystem might use to store optional data. */
-        const Any& _getRenderSystemData() const { return mRenderSystemData; }
-
+        const HardwareBufferPtr& _getHardwareBuffer() const { return mHardwareBuffer; }
+        /// upload parameter data to GPU memory. Must have a HardwareBuffer
+        void _upload() const;
+        /// download data from GPU memory. Must have a writable HardwareBuffer
+        void download();
     };
 
     class GpuProgramParameters;
@@ -640,7 +624,7 @@ namespace Ogre {
             which case the values should not be copied out of the shared area
             into the individual parameter set, but bound separately.
         */
-        void _copySharedParamsToTargetParams();
+        void _copySharedParamsToTargetParams() const;
 
         /// Get the name of the shared parameter set
         const String& getName() const { return mSharedParams->getName(); }
@@ -648,10 +632,10 @@ namespace Ogre {
         GpuSharedParametersPtr getSharedParams() const { return mSharedParams; }
         GpuProgramParameters* getTargetParams() const { return mParams; }
 
-        /** Internal method that the RenderSystem might use to store optional data. */
-        void _setRenderSystemData(const Any& data) const { mRenderSystemData = data; }
-        /** Internal method that the RenderSystem might use to store optional data. */
-        const Any& _getRenderSystemData() const { return mRenderSystemData; }
+        /// @deprecated use GpuSharedParameters::_setHardwareBuffer
+        OGRE_DEPRECATED void _setRenderSystemData(const Any& data) const { mRenderSystemData = data; }
+        /// @deprecated use GpuSharedParameters::_getHardwareBuffer
+        OGRE_DEPRECATED const Any& _getRenderSystemData() const { return mRenderSystemData; }
 
 
     };
@@ -774,7 +758,10 @@ namespace Ogre {
             ACT_TRANSPOSE_WORLDVIEW_MATRIX,
             /// The current world & view matrices concatenated, then inverted & transposed
             ACT_INVERSE_TRANSPOSE_WORLDVIEW_MATRIX,
-            // view matrices.
+            /** Provides inverse transpose of the upper 3x3 of the worldview matrix.
+                Equivalent to "gl_NormalMatrix".
+            */
+            ACT_NORMAL_MATRIX,
 
             /// The current world, view & projection matrices concatenated
             ACT_WORLDVIEWPROJ_MATRIX,
@@ -975,6 +962,9 @@ namespace Ogre {
             ACT_CAMERA_POSITION,
             /// The current camera's position in object space
             ACT_CAMERA_POSITION_OBJECT_SPACE,
+            /// The current camera's position in world space even when camera relative rendering is enabled
+            ACT_CAMERA_RELATIVE_POSITION,
+
             /** The view/projection matrix of the assigned texture projection frustum
 
              Applicable to vertex programs which have been specified as the ’shadow receiver’ vertex
@@ -1331,7 +1321,6 @@ namespace Ogre {
         /** Logical index to physical index map - for low-level programs
             or high-level programs which pass params this way. */
         GpuLogicalBufferStructPtr mIntLogicalToPhysical;
-        static GpuLogicalBufferStructPtr mBoolLogicalToPhysical; // nullPtr
 
         template <typename T>
         GpuLogicalIndexUse*
@@ -1348,8 +1337,6 @@ namespace Ogre {
         /** Gets the physical buffer index associated with a logical int constant index.
          */
         GpuLogicalIndexUse* _getIntConstantLogicalIndexUse(size_t logicalIndex, size_t requestedSize, uint16 variability);
-        /// @deprecated use _getIntConstantLogicalIndexUse
-        OGRE_DEPRECATED GpuLogicalIndexUse* _getUnsignedIntConstantLogicalIndexUse(size_t logicalIndex, size_t requestedSize, uint16 variability);
         /// Mapping from parameter names to def - high-level programs are expected to populate this
         GpuNamedConstantsPtr mNamedConstants;
         /// List of automatically updated parameters
@@ -1391,15 +1378,6 @@ namespace Ogre {
         void _setLogicalIndexes(const GpuLogicalBufferStructPtr& floatIndexMap,
                                 const GpuLogicalBufferStructPtr& doubleIndexMap,
                                 const GpuLogicalBufferStructPtr& intIndexMap);
-
-        /// @deprecated
-        OGRE_DEPRECATED void _setLogicalIndexes(const GpuLogicalBufferStructPtr& floatIndexMap, const GpuLogicalBufferStructPtr& doubleIndexMap,
-                                const GpuLogicalBufferStructPtr&  intIndexMap, const GpuLogicalBufferStructPtr&  uintIndexMap,
-                                const GpuLogicalBufferStructPtr&  boolIndexMap)
-        {
-            _setLogicalIndexes(floatIndexMap, doubleIndexMap, intIndexMap);
-        }
-
 
         /// Does this parameter set include named parameters?
         bool hasNamedParameters() const { return mNamedConstants.get() != 0; }
@@ -1558,7 +1536,10 @@ namespace Ogre {
             @param count The number of floats to write; if for example
             the uniform constant 'slot' is smaller than a Vector4
         */
-        void _writeRawConstant(size_t physicalIndex, const Vector4& vec,
+        void _writeRawConstant(size_t physicalIndex, const Vector4f& vec,
+                               size_t count = 4);
+        /// @overload
+        void _writeRawConstant(size_t physicalIndex, const Vector<4, double>& vec,
                                size_t count = 4);
         /** Write a single floating-point parameter to the program.
             @note You can use these methods if you have already derived the physical
@@ -1568,14 +1549,8 @@ namespace Ogre {
             @param val The value to set
         */
         void _writeRawConstant(size_t physicalIndex, Real val);
-        /** Write a variable number of floating-point parameters to the program.
-            @note You can use these methods if you have already derived the physical
-            constant buffer location, for a slight speed improvement over using
-            the named / logical index versions.
-            @param physicalIndex The physical buffer index at which to place the parameter
-            @param val The value to set
-        */
-        void _writeRawConstant(size_t physicalIndex, Real val, size_t count);
+        /// @deprecated this will crash if count > 1
+        OGRE_DEPRECATED void _writeRawConstant(size_t physicalIndex, Real val, size_t count);
         /** Write a single integer parameter to the program.
             @note You can use these methods if you have already derived the physical
             constant buffer location, for a slight speed improvement over using
@@ -1617,6 +1592,8 @@ namespace Ogre {
             @param elementCount actual element count used with shader
         */
         void _writeRawConstant(size_t physicalIndex, const Matrix4& m, size_t elementCount);
+        /// @overload
+        void _writeRawConstant(size_t physicalIndex, const Matrix3& m, size_t elementCount);
         /** Write a list of Matrix4 parameters to the program.
             @note You can use these methods if you have already derived the physical
             constant buffer location, for a slight speed improvement over using
@@ -1676,10 +1653,6 @@ namespace Ogre {
             Only applicable to low-level programs.
         */
         const GpuLogicalBufferStructPtr& getIntLogicalBufferStruct() const { return mIntLogicalToPhysical; }
-        /// @deprecated use getIntLogicalBufferStruct
-        OGRE_DEPRECATED const GpuLogicalBufferStructPtr& getUnsignedIntLogicalBufferStruct() const { return mIntLogicalToPhysical; }
-        /// @deprecated
-        OGRE_DEPRECATED const GpuLogicalBufferStructPtr& getBoolLogicalBufferStruct() const { return mBoolLogicalToPhysical; }
 
         /** Retrieves the logical index relating to a physical index in the
             buffer, for programs which support that (low-level programs and
@@ -1691,12 +1664,6 @@ namespace Ogre {
         size_t getDoubleLogicalIndexForPhysicalIndex(size_t physicalIndex);
         /// @copydoc getFloatLogicalIndexForPhysicalIndex
         size_t getIntLogicalIndexForPhysicalIndex(size_t physicalIndex);
-        /// @deprecated use getIntLogicalIndexForPhysicalIndex
-        OGRE_DEPRECATED size_t getUnsignedIntLogicalIndexForPhysicalIndex(size_t physicalIndex);
-        /// @deprecated
-        OGRE_DEPRECATED size_t getBoolLogicalIndexForPhysicalIndex(size_t physicalIndex);
-
-
         /// Get a reference to the list of float constants
         const FloatConstantList& getFloatConstantList() const { return mFloatConstants; }
         /// Get a pointer to the 'nth' item in the float buffer
@@ -1715,14 +1682,6 @@ namespace Ogre {
         int* getIntPointer(size_t pos) { return &mIntConstants[pos]; }
         /// Get a pointer to the 'nth' item in the int buffer
         const int* getIntPointer(size_t pos) const { return &mIntConstants[pos]; }
-        /// @deprecated use getIntConstantList
-        OGRE_DEPRECATED const UnsignedIntConstantList& getUnsignedIntConstantList() const
-        {
-            static UnsignedIntConstantList tmp;
-            tmp.clear();
-            tmp.insert(tmp.end(), mIntConstants.begin(), mIntConstants.end());
-            return tmp;
-        }
         /// Get a pointer to the 'nth' item in the uint buffer
         uint* getUnsignedIntPointer(size_t pos) { return (uint*)&mIntConstants[pos]; }
         /// Get a pointer to the 'nth' item in the uint buffer
@@ -1785,10 +1744,6 @@ namespace Ogre {
 
         /** Clears all the existing automatic constants. */
         void clearAutoConstants(void);
-        typedef ConstVectorIterator<AutoConstantList> AutoConstantIterator;
-        /** Gets an iterator over the automatic constant bindings currently in place.
-         * @deprecated use getAutoConstants() */
-        OGRE_DEPRECATED AutoConstantIterator getAutoConstantIterator(void) const;
 
         /** Gets the automatic constant bindings currently in place. */
         const AutoConstantList& getAutoConstants() const {
@@ -2001,8 +1956,6 @@ namespace Ogre {
             @copydetails _getFloatConstantPhysicalIndex
         */
         size_t _getIntConstantPhysicalIndex(size_t logicalIndex, size_t requestedSize, uint16 variability);
-        /// @deprecated use _getIntConstantPhysicalIndex
-        OGRE_DEPRECATED size_t _getUnsignedIntConstantPhysicalIndex(size_t logicalIndex, size_t requestedSize, uint16 variability);
         /** Sets whether or not we need to transpose the matrices passed in from the rest of OGRE.
             @remarks
             D3D uses transposed matrices compared to GL and OGRE; this is not important when you
@@ -2049,11 +2002,11 @@ namespace Ogre {
         /** increments the multipass number entry by 1 if it exists
          */
         void incPassIterationNumber(void);
-        /** Does this parameters object have a pass iteration number constant? */
-        bool hasPassIterationNumber() const
+        /// @deprecated query by GPV_PASS_ITERATION_NUMBER instead
+        OGRE_DEPRECATED bool hasPassIterationNumber() const
         { return mActivePassIterationIndex != (std::numeric_limits<size_t>::max)(); }
-        /** Get the physical buffer index of the pass iteration number constant */
-        size_t getPassIterationNumberIndex() const
+        /// @deprecated query by GPV_PASS_ITERATION_NUMBER instead
+        OGRE_DEPRECATED size_t getPassIterationNumberIndex() const
         { return mActivePassIterationIndex; }
 
 
@@ -2098,6 +2051,12 @@ namespace Ogre {
             into the individual parameter set, but bound separately.
         */
         void _copySharedParams();
+
+        /** Update the HardwareBuffer based backing of referenced shared parameters
+         *
+         * falls back to _copySharedParams() if a shared parameter is not hardware backed
+         */
+        void _updateSharedParams();
 
         size_t calculateSize(void) const;
 

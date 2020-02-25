@@ -30,7 +30,7 @@ THE SOFTWARE.
 #define __Polygon_H__
 
 #include "OgrePrerequisites.h"
-#include "OgreVector3.h"
+#include "OgreVector.h"
 #include "OgreHeaderPrefix.h"
 
 
@@ -132,6 +132,8 @@ namespace Ogre
         */
         bool operator != (const Polygon& rhs) const
         { return !( *this == rhs ); }
+
+        Polygon& operator=(const Ogre::Polygon&) ;
 
         /** Prints out the polygon data.
         */

@@ -5,6 +5,7 @@
     - @subpage setup
     - @subpage tut_FirstScene
     - @subpage tut_LightsCamerasShadows
+    - @subpage tut_TerrainSkyFog
     - @subpage working-with-numpy
 - Components
     - @subpage trays
@@ -12,7 +13,9 @@
 - In Depth
     - @subpage manual-mesh-creation
     - @subpage profiler
+    - @subpage reversed-depth
     - @subpage External-Texture-Sources
+    - @subpage background-resource
     - @subpage ShadowMappingOgre
     - @subpage deferred
     - @subpage pczscenemanager

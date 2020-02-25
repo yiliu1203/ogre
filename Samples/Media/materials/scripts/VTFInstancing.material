@@ -329,7 +329,6 @@ vertex_program Ogre/Instancing/VTF_vs unified
 	{
 		param_named_auto	viewProjMatrix				viewproj_matrix
 
-		param_named_auto	depthRange					shadow_scene_depth_range 0
 		param_named_auto	texViewProjMatrix			texture_viewproj_matrix 0
 	}
 }
@@ -344,7 +343,6 @@ vertex_program Ogre/Instancing/VTF/shadow_caster_vs unified
 	default_params
 	{
 		param_named_auto	viewProjMatrix				viewproj_matrix
-		param_named_auto	depthRange					scene_depth_range
 	}
 }
 
@@ -359,7 +357,6 @@ vertex_program Ogre/Instancing/VTF_dq_vs unified
 	{
 		param_named_auto	viewProjMatrix				viewproj_matrix
 
-		param_named_auto	depthRange				shadow_scene_depth_range 0
 		param_named_auto	texViewProjMatrix			texture_viewproj_matrix 0
 	}
 }
@@ -374,7 +371,6 @@ vertex_program Ogre/Instancing/VTF/shadow_caster_dq_vs unified
 	default_params
 	{
 		param_named_auto	viewProjMatrix				viewproj_matrix
-		param_named_auto	depthRange				scene_depth_range
 	}
 }
 
@@ -389,7 +385,6 @@ vertex_program Ogre/Instancing/VTF_dq_two_weights_vs unified
 	{
 		param_named_auto	viewProjMatrix				viewproj_matrix
 
-		param_named_auto	depthRange				shadow_scene_depth_range 0
 		param_named_auto	texViewProjMatrix			texture_viewproj_matrix 0
 	}
 }
@@ -404,7 +399,6 @@ vertex_program Ogre/Instancing/VTF/shadow_caster_dq_two_weights_vs unified
 	default_params
 	{
 		param_named_auto	viewProjMatrix				viewproj_matrix
-		param_named_auto	depthRange				scene_depth_range
 	}
 }
 
@@ -493,7 +487,7 @@ abstract material Examples/Instancing/VTF
 
 			texture_unit Diffuse
 			{
-				texture_alias		DiffuseMap
+				texture		$DiffuseMap
 			}
 
 			texture_unit shadow0
@@ -531,7 +525,7 @@ abstract material Examples/Instancing/VTF_dq
 
 			texture_unit Diffuse
 			{
-				texture_alias		DiffuseMap
+				texture		$DiffuseMap
 			}
 
 			texture_unit shadow0
@@ -570,7 +564,7 @@ abstract material Examples/Instancing/VTF_dq_two_weights
 
 			texture_unit Diffuse
 			{
-				texture_alias		DiffuseMap
+				texture		$DiffuseMap
 				tex_address_mode clamp
 			}
 
@@ -592,15 +586,15 @@ abstract material Examples/Instancing/VTF_dq_two_weights
 
 material Examples/Instancing/VTF/Robot : Examples/Instancing/VTF
 {
-	set_texture_alias	DiffuseMap	r2skin.jpg
+	set	$DiffuseMap	r2skin.jpg
 }
 
 material Examples/Instancing/VTF/Robot_dq : Examples/Instancing/VTF_dq
 {
-	set_texture_alias	DiffuseMap	r2skin.jpg
+	set	$DiffuseMap	r2skin.jpg
 }
 
 material Examples/Instancing/VTF/spine_dq_two_weights : Examples/Instancing/VTF_dq_two_weights
 {
-	set_texture_alias	DiffuseMap	circuit.dds
+	set	$DiffuseMap	circuit.dds
 }

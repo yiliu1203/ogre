@@ -37,11 +37,11 @@ namespace Ogre {
         : Node(name)
         , mCreator(creator)
         , mAutoTrackTarget(0)
+        , mGlobalIndex(-1)
         , mYawFixed(false)
         , mIsInSceneGraph(false)
         , mShowBoundingBox(false)
         , mHideBoundingBox(false)
-
     {
         needUpdate();
     }
@@ -501,11 +501,7 @@ namespace Ogre {
                 yawAxis = mParent->_getDerivedOrientation() * yawAxis;
             }
 
-            Vector3 xVec = yawAxis.crossProduct(targetDir);
-            xVec.normalise();
-            Vector3 yVec = targetDir.crossProduct(xVec);
-            yVec.normalise();
-            Quaternion unitZToTarget = Quaternion(xVec, yVec, targetDir);
+            Quaternion unitZToTarget = Math::lookRotation(targetDir, yawAxis);
 
             if (localDirectionVector == Vector3::NEGATIVE_UNIT_Z)
             {

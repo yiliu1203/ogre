@@ -175,6 +175,22 @@ namespace OgreBites
             }
         }
 
+        /// catch any exceptions that might drop out of event handlers implemented by Samples
+        bool frameStarted(const Ogre::FrameEvent& evt)
+        {
+            try
+            {
+                return SampleContext::frameStarted(evt);
+            }
+            catch (Ogre::Exception& e)   // show error and fall back to menu
+            {
+                runSample(0);
+                mTrayMgr->showOkDialog("Error!", e.getDescription() + "\nSource: " + e.getSource());
+            }
+
+            return true;
+        }
+
         /*-----------------------------------------------------------------------------
           | Extends frameRenderingQueued to update tray manager and carousel.
           -----------------------------------------------------------------------------*/
@@ -220,17 +236,7 @@ namespace OgreBites
 
             mTrayMgr->frameRendered(evt);
 
-            try
-            {
-                return SampleContext::frameRenderingQueued(evt);
-            }
-            catch (Ogre::Exception& e)   // show error and fall back to menu
-            {
-                runSample(0);
-                mTrayMgr->showOkDialog("Error!", e.getDescription() + "\nSource: " + e.getSource());
-            }
-
-            return true;
+            return SampleContext::frameRenderingQueued(evt);
         }
 
         /*-----------------------------------------------------------------------------
@@ -297,10 +303,12 @@ namespace OgreBites
             else if (b->getName() == "Configure")   // enter configuration screen
             {
                 mTrayMgr->removeWidgetFromTray("StartStop");
-                mTrayMgr->removeWidgetFromTray("UnloadReload");
                 mTrayMgr->removeWidgetFromTray("Configure");
+#if OGRE_PLATFORM != OGRE_PLATFORM_ANDROID
+                mTrayMgr->removeWidgetFromTray("UnloadReload");
                 mTrayMgr->removeWidgetFromTray("Quit");
                 mTrayMgr->moveWidgetToTray("Apply", TL_RIGHT);
+#endif
                 mTrayMgr->moveWidgetToTray("Back", TL_RIGHT);
 
                 for (unsigned int i = 0; i < mThumbs.size(); i++)
@@ -345,9 +353,13 @@ namespace OgreBites
                 mTrayMgr->removeWidgetFromTray("ConfigSeparator");
 
                 mTrayMgr->moveWidgetToTray("StartStop", TL_RIGHT);
+#if OGRE_PLATFORM != OGRE_PLATFORM_ANDROID
                 mTrayMgr->moveWidgetToTray("UnloadReload", TL_RIGHT);
+#endif
                 mTrayMgr->moveWidgetToTray("Configure", TL_RIGHT);
+#if OGRE_PLATFORM != OGRE_PLATFORM_ANDROID
                 mTrayMgr->moveWidgetToTray("Quit", TL_RIGHT);
+#endif
 
                 windowResized(mWindow);
             }
@@ -355,7 +367,7 @@ namespace OgreBites
             {
                 bool reset = false;
 
-                Ogre::ConfigOptionMap& options =
+                auto options =
                     mRoot->getRenderSystemByName(mRendererMenu->getSelectedItem())->getConfigOptions();
 
                 Ogre::NameValuePairList newOptions;
@@ -470,7 +482,7 @@ namespace OgreBites
                     mTrayMgr->destroyWidget(mRendererMenu->getTrayLocation(), 3);
                 }
 
-                Ogre::ConfigOptionMap& options = mRoot->getRenderSystemByName(menu->getSelectedItem())->getConfigOptions();
+                auto options = mRoot->getRenderSystemByName(menu->getSelectedItem())->getConfigOptions();
 
                 unsigned int i = 0;
 
@@ -515,9 +527,9 @@ namespace OgreBites
         virtual bool keyPressed(const KeyboardEvent& evt)
         {
             if (mTrayMgr->isDialogVisible()) return true;  // ignore keypresses when dialog is showing
-			
-			Keycode key = evt.keysym.sym;
-			
+
+            Keycode key = evt.keysym.sym;
+
             if (key == SDLK_ESCAPE)
             {
 #if __OGRE_WINRT_PHONE
@@ -580,8 +592,8 @@ namespace OgreBites
             {
                 // Make sure we use the window size as originally requested, NOT the
                 // current window size (which may have altered to fit desktop)
-                const Ogre::ConfigOptionMap::iterator opti =
-                    mRoot->getRenderSystem()->getConfigOptions().find("Video Mode");
+                auto opti = mRoot->getRenderSystem()->getConfigOptions().find(
+                    "Video Mode");
                 Ogre::StringVector vmopts = Ogre::StringUtil::split(opti->second.currentValue, " x");
                 unsigned int w = Ogre::StringConverter::parseUnsignedInt(vmopts[0]);
                 unsigned int h = Ogre::StringConverter::parseUnsignedInt(vmopts[1]);
@@ -598,17 +610,7 @@ namespace OgreBites
                     mWindow->setFSAA(newFSAA, mWindow->getFSAAHint());
             }
 
-            try
-            {
-                return SampleContext::keyPressed(evt);
-            }
-            catch (Ogre::Exception& e)   // show error and fall back to menu
-            {
-                runSample(0);
-                mTrayMgr->showOkDialog("Error!", e.getDescription() + "\nSource: " + e.getSource());
-            }
-
-            return true;
+            return SampleContext::keyPressed(evt);
         }
 
 #if OGRE_PLATFORM == OGRE_PLATFORM_APPLE_IOS
@@ -651,12 +653,7 @@ namespace OgreBites
           | for thumbnail clicks, just because we can.
           -----------------------------------------------------------------------------*/
         virtual bool mousePressed(const MouseButtonEvent& evt)
-		{
-            // FIXME: does SDL handle orientation for us already?
-            //OIS::PointerState state = evt.state;
-            //transformInputState(state);
-            //OIS::PointerEvent orientedEvt((OIS::Object*)evt.device, state);
-
+        {
             if (mTitleLabel->getTrayLocation() != TL_NONE)
             {
                 for (unsigned int i = 0; i < mThumbs.size(); i++)
@@ -670,20 +667,9 @@ namespace OgreBites
                 }
             }
 
-            if (mTrayMgr->mousePressed(evt)) return true;
+            if (isCurrentSamplePaused()) return mTrayMgr->mousePressed(evt);
 
-            try
-            {
-                // return SampleContext::mousePressed(orientedEvt);
-                return SampleContext::mousePressed(evt);
-            }
-            catch (Ogre::Exception& e)   // show error and fall back to menu
-            {
-                runSample(0);
-                mTrayMgr->showOkDialog("Error!", e.getDescription() + "\nSource: " + e.getSource());
-            }
-
-            return true;
+            return SampleContext::mousePressed(evt);
         }
 
         // convert and redirect
@@ -698,23 +684,9 @@ namespace OgreBites
           -----------------------------------------------------------------------------*/
         virtual bool mouseReleased(const MouseButtonEvent& evt)
          {
-            //OIS::PointerState state = evt.state;
-            //transformInputState(state);
-            //OIS::PointerEvent orientedEvt((OIS::Object*)evt.device, state);
+            if (isCurrentSamplePaused()) return mTrayMgr->mouseReleased(evt);
 
-            if (mTrayMgr->mouseReleased(evt)) return true;
-
-            try
-            {
-                return SampleContext::mouseReleased(evt);
-            }
-            catch (Ogre::Exception& e)   // show error and fall back to menu
-            {
-                runSample(0);
-                mTrayMgr->showOkDialog("Error!", e.getDescription() + "\nSource: " + e.getSource());
-            }
-
-            return true;
+            return SampleContext::mouseReleased(evt);
         }
 
         // convert and redirect
@@ -730,23 +702,9 @@ namespace OgreBites
           -----------------------------------------------------------------------------*/
         virtual bool mouseMoved(const MouseMotionEvent& evt)
         {
-            //OIS::PointerState state = evt.state;
-            //transformInputState(state);
-            //OIS::PointerEvent orientedEvt((OIS::Object*)evt.device, state);
+            if (isCurrentSamplePaused()) return mTrayMgr->mouseMoved(evt);
 
-            if (mTrayMgr->mouseMoved(evt)) return true;
-
-            try
-            {
-                return SampleContext::mouseMoved(evt);
-            }
-            catch (Ogre::Exception& e)   // show error and fall back to menu
-            {
-                runSample(0);
-                mTrayMgr->showOkDialog("Error!", e.getDescription() + "\nSource: " + e.getSource());
-            }
-
-            return true;
+            return SampleContext::mouseMoved(evt);
         }
 
         // convert and redirect
@@ -764,8 +722,8 @@ namespace OgreBites
          */
         virtual bool mouseWheelRolled(const MouseWheelEvent& evt)
         {
-            if (!(mCurrentSample && !mSamplePaused) && mTitleLabel->getTrayLocation() != TL_NONE
-                && mSampleMenu->getNumItems() != 0)
+            if (isCurrentSamplePaused() && mTitleLabel->getTrayLocation() != TL_NONE &&
+                mSampleMenu->getNumItems() != 0)
             {
                 int newIndex = mSampleMenu->getSelectionIndex() - evt.y / Ogre::Math::Abs(evt.y);
                 mSampleMenu->selectItem(Ogre::Math::Clamp<size_t>(newIndex, 0, mSampleMenu->getNumItems() - 1));
@@ -773,16 +731,6 @@ namespace OgreBites
 
             return SampleContext::mouseWheelRolled(evt);
         }
-
-        
-#if (OGRE_PLATFORM == OGRE_PLATFORM_APPLE_IOS) || (OGRE_PLATFORM == OGRE_PLATFORM_ANDROID)
-        /** Extends touchCancelled to inject an event that a touch was cancelled.
-         */
-        virtual bool touchCancelled(const TouchFingerEvent& evt)
-        {
-            return true;
-        }
-#endif
 
         /*-----------------------------------------------------------------------------
           | Extends windowResized to best fit menus on screen. We basically move the
@@ -823,6 +771,7 @@ namespace OgreBites
             mWindow = getRenderWindow();
             addInputListener(this);
             if(mGrabInput) setWindowGrab();
+            else mTrayMgr->hideCursor();
 #ifdef OGRE_STATIC_LIB
             mPluginNameMap["DefaultSamples"] = new DefaultSamplesPlugin();
 #   ifdef SAMPLES_INCLUDE_PLAYPEN
@@ -851,6 +800,15 @@ namespace OgreBites
           -----------------------------------------------------------------------------*/
         virtual NativeWindowPair createWindow(const Ogre::String& name, uint32_t w, uint32_t h, Ogre::NameValuePairList miscParams)
         {
+#if OGRE_PLATFORM == OGRE_PLATFORM_ANDROID
+            // Make sure Trays are not tiny -  we cannot easily scale the UI, therefore just reduce resolution
+            float contentScaling = AConfiguration_getDensity(mAConfig)/float(ACONFIGURATION_DENSITY_HIGH);
+            if(contentScaling > 1.0)
+            {
+                miscParams["contentScalingFactor"] = std::to_string(contentScaling);
+                miscParams["FSAA"] = "2";
+            }
+#endif
             NativeWindowPair res = ApplicationContext::createWindow(name, w, h, miscParams);
 
 #if OGRE_PLATFORM == OGRE_PLATFORM_APPLE_IOS
@@ -883,7 +841,7 @@ namespace OgreBites
             createDummyScene();
 
             mTrayMgr->showLoadingBar(1, 0);
-            Ogre::ResourceGroupManager::getSingleton().initialiseResourceGroup("General");
+            Ogre::ResourceGroupManager::getSingleton().initialiseAllResourceGroups();
             mTrayMgr->hideLoadingBar();
         }
 
@@ -1049,25 +1007,27 @@ namespace OgreBites
             mTrayMgr->createSeparator(TL_RIGHT, "LogoSep");
             mTrayMgr->createButton(TL_RIGHT, "StartStop", "Start Sample", 120);
 
-#       if      OGRE_PLATFORM != OGRE_PLATFORM_WINRT
+#if (OGRE_PLATFORM != OGRE_PLATFORM_WINRT) && (OGRE_PLATFORM != OGRE_PLATFORM_ANDROID)
             mTrayMgr->createButton(TL_RIGHT, "UnloadReload", mLoadedSamples.empty() ? "Reload Samples" : "Unload Samples");
+#endif
+#if (OGRE_PLATFORM != OGRE_PLATFORM_WINRT)
             mTrayMgr->createButton(TL_RIGHT, "Configure", "Configure");
-#       endif // OGRE_PLATFORM_WINRT
+#endif
+#if (OGRE_PLATFORM != OGRE_PLATFORM_ANDROID)
             mTrayMgr->createButton(TL_RIGHT, "Quit", "Quit");
+#endif
 
             // create sample viewing controls
-            mTitleLabel = mTrayMgr->createLabel(TL_LEFT, "SampleTitle", "");
+            float infoWidth = 250;
 #if (OGRE_PLATFORM == OGRE_PLATFORM_APPLE_IOS) || (OGRE_PLATFORM == OGRE_PLATFORM_ANDROID)
-            mDescBox = mTrayMgr->createTextBox(TL_LEFT, "SampleInfo", "Sample Info", 120, 100);
-            mCategoryMenu = mTrayMgr->createThickSelectMenu(TL_LEFT, "CategoryMenu", "Select Category", 120, 10);
-            mSampleMenu = mTrayMgr->createThickSelectMenu(TL_LEFT, "SampleMenu", "Select Sample", 120, 10);
-            mSampleSlider = mTrayMgr->createThickSlider(TL_LEFT, "SampleSlider", "Slide Samples", 120, 42, 0, 0, 0);
-#else
-            mDescBox = mTrayMgr->createTextBox(TL_LEFT, "SampleInfo", "Sample Info", 250, 208);
-            mCategoryMenu = mTrayMgr->createThickSelectMenu(TL_LEFT, "CategoryMenu", "Select Category", 250, 10);
-            mSampleMenu = mTrayMgr->createThickSelectMenu(TL_LEFT, "SampleMenu", "Select Sample", 250, 10);
-            mSampleSlider = mTrayMgr->createThickSlider(TL_LEFT, "SampleSlider", "Slide Samples", 250, 80, 0, 0, 0);
+            infoWidth *= 0.9;
 #endif
+            mTitleLabel = mTrayMgr->createLabel(TL_LEFT, "SampleTitle", "");
+            mDescBox = mTrayMgr->createTextBox(TL_LEFT, "SampleInfo", "Sample Info", infoWidth, 208);
+            mCategoryMenu = mTrayMgr->createThickSelectMenu(TL_LEFT, "CategoryMenu", "Select Category", infoWidth, 10);
+            mSampleMenu = mTrayMgr->createThickSelectMenu(TL_LEFT, "SampleMenu", "Select Sample", infoWidth, 10);
+            mSampleSlider = mTrayMgr->createThickSlider(TL_LEFT, "SampleSlider", "Slide Samples", infoWidth, 80, 0, 0, 0);
+
             /* Sliders do not notify their listeners on creation, so we manually call the callback here
                to format the slider value correctly. */
             sliderMoved(mSampleSlider);
@@ -1078,11 +1038,7 @@ namespace OgreBites
 
             // create configuration screen label and renderer menu
             mTrayMgr->createLabel(TL_NONE, "ConfigLabel", "Configuration");
-#if (OGRE_PLATFORM == OGRE_PLATFORM_APPLE_IOS) || (OGRE_PLATFORM == OGRE_PLATFORM_ANDROID) || (OGRE_PLATFORM == OGRE_PLATFORM_WINRT)
-            mRendererMenu = mTrayMgr->createLongSelectMenu(TL_NONE, "RendererMenu", "Render System", 216, 115, 10);
-#else
             mRendererMenu = mTrayMgr->createLongSelectMenu(TL_NONE, "RendererMenu", "Render System", 450, 240, 10);
-#endif
             mTrayMgr->createSeparator(TL_NONE, "ConfigSeparator");
 
             // populate render system names

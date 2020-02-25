@@ -6,11 +6,17 @@ if(NOT SWIG_FOUND)
     return()
 endif()
 
+if(MSVC)
+    enable_language(CSharp)
+else()
+    set(CMAKE_CSharp_COMPILER mcs)
+endif()
+
 include_directories("${PROJECT_BINARY_DIR}/include" "${PROJECT_SOURCE_DIR}/OgreMain/include")
 include(${SWIG_USE_FILE})
 
 if(MSVC)
-	add_definitions(/bigobj)
+	add_definitions(/bigobj /wd4700)
 else()
 	add_definitions(-Wno-strict-aliasing -Wno-cast-qual -Wno-shadow -Wno-missing-declarations -Wno-unused-but-set-variable)
 endif()
@@ -45,4 +51,13 @@ endif()
 set(CMAKE_WARN_DEPRECATED OFF)
 swig_add_module(libOgre csharp ${SWIG_INPUT_MODULES})
 SWIG_LINK_LIBRARIES(libOgre OgreBites OgreOverlay OgreRTShaderSystem OgreMain)
-install(TARGETS ${SWIG_MODULE_libOgre_REAL_NAME} LIBRARY DESTINATION lib/)
+
+set(CLI_DEST lib/cli/ogre-sharp-${OGRE_VERSION})
+install(TARGETS ${SWIG_MODULE_libOgre_REAL_NAME} LIBRARY DESTINATION ${CLI_DEST}/)
+
+# compile C# DLL
+add_custom_command(TARGET ${SWIG_MODULE_libOgre_REAL_NAME} POST_BUILD
+    COMMAND "${CMAKE_CSharp_COMPILER}" -target:library -out:Ogre.dll "${PROJECT_BINARY_DIR}/csharp/*.cs"
+    WORKING_DIRECTORY "${PROJECT_BINARY_DIR}/csharp/")
+
+install(FILES "${PROJECT_BINARY_DIR}/csharp/Ogre.dll" DESTINATION ${CLI_DEST})

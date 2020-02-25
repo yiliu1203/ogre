@@ -59,7 +59,6 @@ THE SOFTWARE.
 #include "OgreShaderRenderState.h"
 #include "OgreShaderMaterialSerializerListener.h"
 #include "OgreShaderProgramWriterManager.h"
-#include "OgreShaderMaterialSerializerListener.h"
 
 #include "OgreShaderFFPRenderState.h"
 #include "OgreShaderFFPRenderStateBuilder.h"
@@ -80,6 +79,7 @@ THE SOFTWARE.
 #include "OgreShaderExDualQuaternionSkinning.h"
 #include "OgreShaderExTextureAtlasSampler.h"
 #include "OgreShaderExTriplanarTexturing.h"
+#include "OgreShaderExGBuffer.h"
 
 #include "OgreShaderCGProgramProcessor.h"
 #include "OgreShaderHLSLProgramProcessor.h"

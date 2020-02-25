@@ -129,6 +129,10 @@ void SGScriptTranslator::translateTextureUnit(ScriptCompiler* compiler, const Ab
                     addSubRenderState(subRenderState, dstTechniqueSchemeName, material->getName(), 
                         material->getGroup(), pass->getIndex());
                 }
+                else
+                {
+                    compiler->addError(ScriptCompiler::CE_INVALIDPARAMETERS, prop->file, prop->line, prop->name);
+                }
             }
             else
             {
@@ -189,7 +193,7 @@ void SGScriptTranslator::translatePass(ScriptCompiler* compiler, const AbstractN
                             RenderState* renderState = shaderGenerator->getRenderState(dstTechniqueSchemeName, 
                                 material->getName(), material->getGroup(), pass->getIndex());
 
-                            renderState->setLightCount(lightCount.data());
+                            renderState->setLightCount(Vector3i(lightCount.data()));
                             renderState->setLightCountAutoUpdate(false);
                         }
                         else
@@ -206,6 +210,10 @@ void SGScriptTranslator::translatePass(ScriptCompiler* compiler, const AbstractN
                     if (subRenderState)
                     {
                         addSubRenderState(subRenderState, dstTechniqueSchemeName, material->getName(), material->getGroup(), pass->getIndex());
+                    }
+                    else
+                    {
+                        compiler->addError(ScriptCompiler::CE_INVALIDPARAMETERS, prop->file, prop->line, prop->name);
                     }
                 }               
             }

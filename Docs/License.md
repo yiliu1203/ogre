@@ -11,6 +11,8 @@
 
 In practice this means that whenever you distribute your application, whether as binary or as source code, you must include somewhere in your distribution the text <a href="../LICENSE">in this file</a>. This might be in the printed documentation, as a file on delivered media, or even on the credits / acknowledgements of the runtime application itself; any of those would satisfy the requirement.
 
+The [OGRE Logo](ogre-logo.png) is licenced [CC-BY](https://creativecommons.org/licenses/by/2.0/) [Pierre Fontaine](http://codrer.com/).
+
 # Licenses for 3rd-party libraries used in OGRE
 
 Several 3rd-party libraries are used in OGRE for various purposes, and the licensing details of each are given here.
@@ -24,31 +26,6 @@ licensed under liberal terms. You should read the detail of the
 licenses when distributing an application since most require you to
 include the license in your documentation. All the license texts are
 included in the Docs/licenses folder.
-
-### STB Image
-
-<table style="text-align: left; width: 100%;" border="0" cellpadding="0" cellspacing="0">
-<tbody>
-
-<tr>
-    <td style="width: 20%;">Original Authors:</td>
-    <td>Sean Barrett<br />
-    </td>
-</tr>
-
-<tr>
-    <td>Website:</td>
-    <td>https://github.com/nothings/stb<br />
-    </td>
-</tr>
-
-<tr>
-    <td>Licensed Under:</td>
-    <td>public domain</td>
-</tr>
-
-</tbody>
-</table>
 
 ### Zlib
 
@@ -157,6 +134,36 @@ Bites Component</td>
 </tbody>
 </table>
 
+### STB Image
+
+<table style="text-align: left; width: 100%;" border="0" cellpadding="0" cellspacing="0">
+<tbody>
+
+<tr>
+    <td style="width: 20%;">Original Authors:</td>
+    <td>Sean Barrett<br />
+    </td>
+</tr>
+
+<tr>
+    <td>Website:</td>
+    <td>https://github.com/nothings/stb<br />
+    </td>
+</tr>
+
+<tr>
+    <td>Licensed Under:</td>
+    <td>public domain</td>
+</tr>
+
+<tr>
+<td>Needed By:</td>
+<td>Codec_STBI</td>
+</tr>
+
+</tbody>
+</table>
+
 ### OpenEXR
 
 <table style="text-align: left; width: 100%;" border="0" cellpadding="0" cellspacing="0">
@@ -179,12 +186,42 @@ Bites Component</td>
 
 <tr>
 <td>Needed By:</td>
-<td>Plugin_EXRCodec</td>
+<td>Codec_EXR</td>
 </tr>
 
 </tbody>
 </table>
-<br />
+
+### pugixml
+
+<table>
+<tbody>
+<tr>
+<td style="width: 20%;">
+Original Authors:</td>
+<td>
+Arseny Kapoulkine</td>
+</tr>
+<tr>
+<td>
+Website:</td>
+<td>
+ https://pugixml.org/</td>
+</tr>
+<tr>
+<td>
+Licensed Under:</td>
+<td>
+<a href="licenses/mit.txt">MIT License</a></td>
+</tr>
+
+<tr>
+<td>Needed By:</td>
+<td>OgreXMLConverter, Bites Component</td>
+</tr>
+
+</tbody>
+</table>
 
 ## Source code used in-place in OGRE
 

@@ -56,6 +56,7 @@ namespace Ogre {
     */
     class _OgreExport SceneNode : public Node
     {
+        friend class SceneManager;
     public:
         typedef std::vector<MovableObject*> ObjectMap;
         typedef VectorIterator<ObjectMap> ObjectIterator;
@@ -90,6 +91,14 @@ namespace Ogre {
         SceneNode* mAutoTrackTarget;
         /// Pointer to a Wire Bounding Box for this Node
         std::unique_ptr<WireBoundingBox> mWireBoundingBox;
+
+        /** Index in the vector holding this node reference. Used for O(1) removals.
+
+            It is the parent (or our creator) the one that sets this value, not ourselves. Do NOT modify
+            it manually.
+        */
+        size_t mGlobalIndex;
+
         /// Tracking offset for fine tuning
         Vector3 mAutoTrackOffset;
         /// Local 'normal' direction vector
@@ -308,6 +317,7 @@ namespace Ogre {
         @remarks
             This creates a child node with a given name, which allows you to look the node up from 
             the parent which holds this collection of nodes.
+            @param name name of the node
             @param
                 translate Initial translation offset of child relative to parent
             @param

@@ -36,12 +36,6 @@ public:
 
     void testCapabilities(const RenderSystemCapabilities* caps)
     {
-        if (!caps->hasCapability(RSC_VERTEX_PROGRAM) || !(caps->hasCapability(RSC_FRAGMENT_PROGRAM)))
-        {
-            OGRE_EXCEPT(Exception::ERR_NOT_IMPLEMENTED, "Your graphics card does not support vertex and fragment programs, "
-                "so you cannot run this sample. Sorry!", "Dot3BumpSample::testCapabilities");
-        }
-
         if (!GpuProgramManager::getSingleton().isSyntaxSupported("arbfp1") &&
             !GpuProgramManager::getSingleton().isSyntaxSupported("ps_2_0") &&
             !GpuProgramManager::getSingleton().isSyntaxSupported("ps_4_0") &&
@@ -167,12 +161,12 @@ protected:
 
         matNames.push_back("Examples/BumpMapping/MultiLight");
         matNames.push_back("Examples/BumpMapping/MultiLightSpecular");
-        matNames.push_back("Examples/OffsetMapping/Specular");
         matNames.push_back("Examples/ShowUV");
         matNames.push_back("Examples/ShowNormals");
         matNames.push_back("Examples/ShowTangents");
 
 #ifdef INCLUDE_RTSHADER_SYSTEM
+        matNames.push_back("RTSS/OffsetMapping");
         matNames.push_back("RTSS/NormalMapping_SinglePass");
         matNames.push_back("RTSS/NormalMapping_MultiPass");
 #endif

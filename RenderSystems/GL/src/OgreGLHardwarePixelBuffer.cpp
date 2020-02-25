@@ -57,9 +57,7 @@ void GLHardwarePixelBuffer::blitFromMemory(const PixelBox &src, const Box &dstBo
          "GLHardwarePixelBuffer::blitFromMemory");
     PixelBox scaled;
     
-    if(src.getWidth() != dstBox.getWidth() ||
-        src.getHeight() != dstBox.getHeight() ||
-        src.getDepth() != dstBox.getDepth())
+    if(src.getSize() != dstBox.getSize())
     {
         // Scale to destination size.
         // This also does pixel format conversion if needed
@@ -90,12 +88,9 @@ void GLHardwarePixelBuffer::blitToMemory(const Box &srcBox, const PixelBox &dst)
     if(!mBuffer.contains(srcBox))
         OGRE_EXCEPT(Exception::ERR_INVALIDPARAMS, "source box out of range",
          "GLHardwarePixelBuffer::blitToMemory");
-    if(srcBox.left == 0 && srcBox.right == getWidth() &&
-       srcBox.top == 0 && srcBox.bottom == getHeight() &&
-       srcBox.front == 0 && srcBox.back == getDepth() &&
-       dst.getWidth() == getWidth() &&
-       dst.getHeight() == getHeight() &&
-       dst.getDepth() == getDepth() &&
+    if(srcBox.getOrigin() == Vector3i(0, 0 ,0) &&
+       srcBox.getSize() == getSize() &&
+       dst.getSize() == getSize() &&
        GLPixelUtil::getGLInternalFormat(dst.format) != 0)
     {
         // The direct case: the user wants the entire texture in a format supported by GL
@@ -108,9 +103,7 @@ void GLHardwarePixelBuffer::blitToMemory(const Box &srcBox, const PixelBox &dst)
         allocateBuffer();
         // Download entire buffer
         download(mBuffer);
-        if(srcBox.getWidth() != dst.getWidth() ||
-            srcBox.getHeight() != dst.getHeight() ||
-            srcBox.getDepth() != dst.getDepth())
+        if(srcBox.getSize() != dst.getSize())
         {
             // We need scaling
             Image::scale(mBuffer.getSubVolume(srcBox), dst, Image::FILTER_BILINEAR);
@@ -128,7 +121,7 @@ GLTextureBuffer::GLTextureBuffer(GLRenderSystem* renderSystem, GLTexture* parent
                                  GLint level, uint32 width, uint32 height, uint32 depth)
     : GLHardwarePixelBuffer(width, height, depth, parent->getFormat(), (Usage)parent->getUsage()),
       mTarget(parent->getGLTextureTarget()), mFaceTarget(0), mTextureID(parent->getGLID()),
-      mFace(face), mLevel(level), mHwGamma(parent->isHardwareGammaEnabled()), mSliceTRT(0),
+      mLevel(level), mHwGamma(parent->isHardwareGammaEnabled()), mSliceTRT(0),
       mRenderSystem(renderSystem)
 {
     // Get face identifier
@@ -329,16 +322,13 @@ void GLTextureBuffer::upload(const PixelBox &data, const Box &dest)
 
     // Restore defaults
     glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
-    if (GLEW_VERSION_1_2)
-        glPixelStorei(GL_UNPACK_IMAGE_HEIGHT, 0);
+    glPixelStorei(GL_UNPACK_IMAGE_HEIGHT, 0);
     glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
 }
 //-----------------------------------------------------------------------------  
 void GLTextureBuffer::download(const PixelBox &data)
 {
-    if(data.getWidth() != getWidth() ||
-        data.getHeight() != getHeight() ||
-        data.getDepth() != getDepth())
+    if(data.getSize() != getSize())
         OGRE_EXCEPT(Exception::ERR_INVALIDPARAMS, "only download of entire buffer is supported by GL",
             "GLTextureBuffer::download");
     mRenderSystem->_getStateCacheManager()->bindGLTexture( mTarget, mTextureID );
@@ -423,7 +413,7 @@ void GLTextureBuffer::blit(const HardwarePixelBufferSharedPtr &src, const Box &s
     
     // This does not seem to work for RTTs after the first update
     // I have no idea why! For the moment, disable 
-    if(GLEW_EXT_framebuffer_object && (src->getUsage() & TU_RENDERTARGET) == 0 &&
+    if(GLEW_EXT_framebuffer_object &&
         (srct->mTarget==GL_TEXTURE_1D||srct->mTarget==GL_TEXTURE_2D
          ||srct->mTarget==GL_TEXTURE_3D)&&mTarget!=GL_TEXTURE_2D_ARRAY_EXT)
     {
@@ -458,11 +448,7 @@ void GLTextureBuffer::blitFromTexture(GLTextureBuffer *src, const Box &srcBox, c
     // Important to disable all other texture units
     RenderSystem* rsys = Root::getSingleton().getRenderSystem();
     rsys->_disableTextureUnitsFrom(0);
-    if (GLEW_VERSION_1_2)
-    {
-        mRenderSystem->_getStateCacheManager()->activateGLTextureUnit(0);
-    }
-
+    mRenderSystem->_getStateCacheManager()->activateGLTextureUnit(0);
 
     /// Disable alpha, depth and scissor testing, disable blending, 
     /// disable culling, disble lighting, disable fog and reset foreground
@@ -490,9 +476,7 @@ void GLTextureBuffer::blitFromTexture(GLTextureBuffer *src, const Box &srcBox, c
     mRenderSystem->_getStateCacheManager()->bindGLTexture(src->mTarget, src->mTextureID);
     
     /// Set filtering modes depending on the dimensions and source
-    if(srcBox.getWidth()==dstBox.getWidth() &&
-        srcBox.getHeight()==dstBox.getHeight() &&
-        srcBox.getDepth()==dstBox.getDepth())
+    if(srcBox.getSize()==dstBox.getSize())
     {
         /// Dimensions match -- use nearest filtering (fastest and pixel correct)
         mRenderSystem->_getStateCacheManager()->setTexParameteri(src->mTarget, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
@@ -655,8 +639,7 @@ void GLTextureBuffer::blitFromMemory(const PixelBox &src, const Box &dstBox)
     /// - FBO is not supported
     /// - the source dimensions match the destination ones, in which case no scaling is needed
     if (!GLEW_EXT_framebuffer_object ||
-        (src.getWidth() == dstBox.getWidth() && src.getHeight() == dstBox.getHeight() &&
-         src.getDepth() == dstBox.getDepth()))
+        (src.getSize() == dstBox.getSize()))
     {
         GLHardwarePixelBuffer::blitFromMemory(src, dstBox);
         return;
@@ -673,7 +656,7 @@ void GLTextureBuffer::blitFromMemory(const PixelBox &src, const Box &dstBox)
         src.getWidth(), src.getHeight(), src.getDepth(), MIP_UNLIMITED, src.format);
 
     // Upload data to 0,0,0 in temporary texture
-    Box tempTarget(0, 0, 0, src.getWidth(), src.getHeight(), src.getDepth());
+    Box tempTarget(src.getSize());
     tex->getBuffer()->blitFromMemory(src, tempTarget);
 
     // Blit from texture

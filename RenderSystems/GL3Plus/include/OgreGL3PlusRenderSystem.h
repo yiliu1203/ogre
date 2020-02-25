@@ -32,10 +32,11 @@ Copyright (c) 2000-2014 Torus Knot Software Ltd
 #include "OgreGL3PlusPrerequisites.h"
 
 #include "OgreMaterialManager.h"
-#include "OgreGLSLShader.h"
 #include "OgreRenderWindow.h"
 #include "OgreGLRenderSystemCommon.h"
 #include "OgreGL3PlusStateCacheManager.h"
+
+#include <array>
 
 namespace Ogre {
     /** \addtogroup RenderSystems RenderSystems
@@ -55,6 +56,7 @@ namespace Ogre {
     */
     class _OgreGL3PlusExport GL3PlusRenderSystem : public GLRenderSystemCommon
     {
+        friend class GL3PlusSampler;
     private:
         /// Rendering loop control
         bool mStopRendering;
@@ -85,23 +87,13 @@ namespace Ogre {
         /// Store last stencil mask state
         uint32 mStencilWriteMask;
 
-        typedef std::list<GL3PlusContext*> GL3PlusContextList;
-        /// List of background thread contexts
-        GL3PlusContextList mBackgroundContextList;
-
         // statecaches are per context
         GL3PlusStateCacheManager* mStateCacheManager;
 
-        GLSLShaderManager *mShaderManager;
+        GpuProgramManager *mShaderManager;
         GLSLShaderFactory* mGLSLShaderFactory;
+        HighLevelGpuProgramFactory* mSPIRVShaderFactory;
         HardwareBufferManager* mHardwareBufferManager;
-
-        /** Manager object for creating render textures.
-            Direct render to texture via FBO is preferable
-            to pbuffers, which depend on the GL support used and are generally
-            unwieldy and slow. However, FBO support for stencil buffers is poor.
-        */
-        GLRTTManager *mRTTManager;
 
         /** These variables are used for caching RenderSystem state.
             They are cached because OpenGL state changes can be quite expensive,
@@ -113,17 +105,14 @@ namespace Ogre {
         /// Check if the GL system has already been initialised
         bool mGLInitialised;
 
+        bool mSeparateShaderObjectsEnabled;
+
 #if OGRE_NO_QUAD_BUFFER_STEREO == 0
 		/// @copydoc RenderSystem::setDrawBuffer
 		virtual bool setDrawBuffer(ColourBufferType colourBuffer);
 #endif
 
-        GLSLShader* mCurrentVertexShader;
-        GLSLShader* mCurrentFragmentShader;
-        GLSLShader* mCurrentGeometryShader;
-        GLSLShader* mCurrentHullShader;
-        GLSLShader* mCurrentDomainShader;
-        GLSLShader* mCurrentComputeShader;
+        std::array<GLSLShader*, GPT_COUNT> mCurrentShader;
 
         GLenum getBlendMode(SceneBlendFactor ogreBlend) const;
 
@@ -147,7 +136,9 @@ namespace Ogre {
 
         const String& getName(void) const;
 
-        RenderWindow* _initialise(bool autoCreateWindow, const String& windowTitle = "OGRE Render Window");
+        void _initialise() override;
+
+        void initConfigOptions();
 
         virtual RenderSystemCapabilities* createRenderSystemCapabilities() const;
 
@@ -166,10 +157,6 @@ namespace Ogre {
         /// @copydoc RenderSystem::_createDepthBufferFor
         DepthBuffer* _createDepthBufferFor( RenderTarget *renderTarget );
 
-        /// Mimics D3D9RenderSystem::_getDepthStencilFormatFor, if no FBO RTT manager, outputs GL_NONE
-        void _getDepthStencilFormatFor( PixelFormat internalColourFormat, GLenum *depthFormat,
-                                        GLenum *stencilFormat );
-
         /// @copydoc RenderSystem::createMultiRenderTarget
         virtual MultiRenderTarget * createMultiRenderTarget(const String & name);
 
@@ -184,10 +171,6 @@ namespace Ogre {
         void _setSampler(size_t unit, Sampler& sampler);
 
         void _setTextureAddressingMode(size_t stage, const Sampler::UVWAddressingMode& uvw);
-
-        void _setTextureBorderColour(size_t stage, const ColourValue& colour);
-
-        void _setTextureMipmapBias(size_t unit, float bias);
 
         void _setLineWidth(float width);
 
@@ -227,15 +210,13 @@ namespace Ogre {
 
         void _setTextureUnitFiltering(size_t unit, FilterType ftype, FilterOptions filter);
 
-        void _setTextureUnitCompareFunction(size_t unit, CompareFunction function);
-
-        void _setTextureUnitCompareEnabled(size_t unit, bool compare);
-
-        void _setTextureLayerAnisotropy(size_t unit, unsigned int maxAnisotropy);
-
         void _dispatchCompute(const Vector3i& workgroupDim);
 
         void _render(const RenderOperation& op);
+
+        void _getDepthStencilFormatFor(PixelFormat internalColourFormat,
+                                       uint32* depthFormat,
+                                       uint32* stencilFormat);
 
         void setScissorTest(bool enabled, size_t left = 0, size_t top = 0, size_t right = 800, size_t bottom = 600);
 
@@ -243,11 +224,6 @@ namespace Ogre {
                               const ColourValue& colour = ColourValue::Black,
                               Real depth = 1.0f, unsigned short stencil = 0);
         HardwareOcclusionQuery* createHardwareOcclusionQuery(void);
-        OGRE_MUTEX(mThreadInitMutex);
-        void registerThread();
-        void unregisterThread();
-        void preExtraThreadsStarted();
-        void postExtraThreadsStarted();
 
         // ----------------------------------
         // GL3PlusRenderSystem specific members
@@ -274,9 +250,6 @@ namespace Ogre {
         /** Switch GL context, dealing with involved internal cached states too
          */
         void _switchContext(GL3PlusContext *context);
-        /** One time initialization for the RenderState of a context. Things that
-            only need to be set once, like the LightingModel can be defined here.
-        */
         void _oneTimeContextInitialization();
         void initialiseContext(RenderWindow* primary);
         /**
@@ -290,7 +263,6 @@ namespace Ogre {
         void bindGpuProgram(GpuProgram* prg);
         void unbindGpuProgram(GpuProgramType gptype);
         void bindGpuProgramParameters(GpuProgramType gptype, const GpuProgramParametersPtr& params, uint16 mask);
-        void bindGpuProgramPassIterationParameters(GpuProgramType gptype);
 
         /// @copydoc RenderSystem::_setSeparateSceneBlending
         void _setSeparateSceneBlending( SceneBlendFactor sourceFactor, SceneBlendFactor destFactor, SceneBlendFactor sourceFactorAlpha, SceneBlendFactor destFactorAlpha, SceneBlendOperation op, SceneBlendOperation alphaOp );
@@ -298,9 +270,6 @@ namespace Ogre {
         void _setAlphaRejectSettings( CompareFunction func, unsigned char value, bool alphaToCoverage );
         /// @copydoc RenderSystem::getDisplayMonitorCount
         unsigned int getDisplayMonitorCount() const;
-
-        /// @copydoc RenderSystem::hasAnisotropicMipMapFilter
-        virtual bool hasAnisotropicMipMapFilter() const { return false; }
 
         /// @copydoc RenderSystem::beginProfileEvent
         virtual void beginProfileEvent( const String &eventName );

@@ -61,6 +61,7 @@ namespace Ogre
     public:
         explicit Radian ( Real r=0 ) : mRad(r) {}
         Radian ( const Degree& d );
+        Radian (const Ogre::Radian& rhs) : mRad(rhs.mRad) {}
         Radian& operator = ( const Real& f ) { mRad = f; return *this; }
         Radian& operator = ( const Radian& r ) { mRad = r.mRad; return *this; }
         Radian& operator = ( const Degree& d );
@@ -112,6 +113,7 @@ namespace Ogre
     public:
         explicit Degree ( Real d=0 ) : mDeg(d) {}
         Degree ( const Radian& r ) : mDeg(r.valueDegrees()) {}
+        Degree (const Ogre::Degree& rhs) : mDeg(rhs.mDeg) {}
         Degree& operator = ( const Real& f ) { mDeg = f; return *this; }
         Degree& operator = ( const Degree& d ) { mDeg = d.mDeg; return *this; }
         Degree& operator = ( const Radian& r ) { mDeg = r.valueDegrees(); return *this; }
@@ -718,6 +720,12 @@ namespace Ogre
          */
         static Affine3 makeViewMatrix(const Vector3& position, const Quaternion& orientation,
             const Affine3* reflectMatrix = 0);
+
+        /** Create a rotation matrix from direction and yaw
+        @param direction the direction to look in. Must be normalised.
+        @param yaw the yaw axis to use
+        */
+        static Matrix3 lookRotation(const Vector3& direction, const Vector3& yaw);
 
         /** This creates 'uniform' perspective projection matrix,
             which depth range [-1,1], right-handed rules

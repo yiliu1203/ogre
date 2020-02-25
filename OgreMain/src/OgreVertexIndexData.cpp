@@ -145,11 +145,7 @@ namespace Ogre {
 
         // Upfront, lets check whether we have vertex program capability
         RenderSystem* rend = Root::getSingleton().getRenderSystem();
-        bool useVertexPrograms = false;
-        if (rend && rend->getCapabilities()->hasCapability(RSC_VERTEX_PROGRAM))
-        {
-            useVertexPrograms = true;
-        }
+        bool useVertexPrograms = rend;
 
 
         // Look for a position element
@@ -759,6 +755,13 @@ namespace Ogre {
         inline Triangle( const Triangle& t )
             : a( t.a ), b( t.b ), c( t.c )
         {
+        }
+
+        inline Triangle& operator=(const Triangle& rhs) {
+            a = rhs.a;
+            b = rhs.b;
+            c = rhs.c;
+            return *this;
         }
 
         inline bool sharesEdge(const Triangle& t) const

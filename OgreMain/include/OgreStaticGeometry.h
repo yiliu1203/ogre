@@ -291,8 +291,10 @@ namespace Ogre {
             const MaterialPtr& getMaterial(void) const { return mMaterial; }
             /// Iterator over geometry
             typedef VectorIterator<GeometryBucketList> GeometryIterator;
-            /// Get an iterator over the contained geometry
-            GeometryIterator getGeometryIterator(void);
+            /// Get a list of the contained geometry
+            const GeometryBucketList& getGeometryList() const { return mGeometryBucketList; }
+            /// @deprecated use getGeometryList()
+            OGRE_DEPRECATED GeometryIterator getGeometryIterator(void);
             /// Get the current Technique
             Technique* getCurrentTechnique(void) const { return mTechnique; }
             /// Dump contents for diagnostics
@@ -325,12 +327,10 @@ namespace Ogre {
                     HardwareIndexBufferSharedPtr* indexBuffer, const VertexData* vertexData, 
                     bool createSeparateLightCap, bool isLightCap = false);
                 ~LODShadowRenderable();
-                /// Overridden from ShadowRenderable
-                void getWorldTransforms(Matrix4* xform) const;
+                void getWorldTransforms(Matrix4* xform) const override;
                 HardwareVertexBufferSharedPtr getPositionBuffer(void) { return mPositionBuffer; }
                 HardwareVertexBufferSharedPtr getWBuffer(void) { return mWBuffer; }
-                /// Overridden from ShadowRenderable
-                virtual void rebindIndexBuffer(const HardwareIndexBufferSharedPtr& indexBuffer);
+                virtual void rebindIndexBuffer(const HardwareIndexBufferSharedPtr& indexBuffer) override;
 
             };
             /// Pointer to parent region
@@ -367,7 +367,9 @@ namespace Ogre {
             /// Iterator over the materials in this LOD
             typedef MapIterator<MaterialBucketMap> MaterialIterator;
             /// Get an iterator over the materials in this LOD
-            MaterialIterator getMaterialIterator(void);
+            const MaterialBucketMap& getMaterialBuckets() const { return mMaterialBucketMap; }
+            /// @deprecated use getMaterialBuckets()
+            OGRE_DEPRECATED MaterialIterator getMaterialIterator(void);
             /// Dump contents for diagnostics
             void dump(std::ofstream& of) const;
             void visitRenderables(Renderable::Visitor* visitor, bool debugRenderables);
@@ -457,22 +459,19 @@ namespace Ogre {
             uint32 getTypeFlags(void) const;
 
             typedef VectorIterator<LODBucketList> LODIterator;
-            /// Get an iterator over the LODs in this region
-            LODIterator getLODIterator(void);
-            /// @copydoc ShadowCaster::getShadowVolumeRenderableIterator
-            ShadowRenderableListIterator getShadowVolumeRenderableIterator(
+            /// @deprecated use getLODBuckets()
+            OGRE_DEPRECATED LODIterator getLODIterator(void);
+            /// Get an list of the LODs in this region
+            const LODBucketList& getLODBuckets() const { return mLodBucketList; }
+            const ShadowRenderableList& getShadowVolumeRenderableList(
                 ShadowTechnique shadowTechnique, const Light* light, 
                 HardwareIndexBufferSharedPtr* indexBuffer, size_t* indexBufferUsedSize,
-                bool extrudeVertices, Real extrusionDistance, unsigned long flags = 0 );
-            /// Overridden from MovableObject
-            EdgeData* getEdgeList(void);
-            /** Overridden member from ShadowCaster. */
-            bool hasEdgeList(void);
+                bool extrudeVertices, Real extrusionDistance, unsigned long flags = 0 ) override;
+            EdgeData* getEdgeList(void) override;
+            bool hasEdgeList(void) override;
 
-            /** @copydoc MovableObject::_releaseManualHardwareResources */
-            void _releaseManualHardwareResources();
-            /** @copydoc MovableObject::_restoreManualHardwareResources */
-            void _restoreManualHardwareResources();
+            void _releaseManualHardwareResources() override;
+            void _restoreManualHardwareResources() override;
 
             /// Dump contents for diagnostics
             void dump(std::ofstream& of) const;
@@ -569,7 +568,7 @@ namespace Ogre {
             for (size_t i = 0; i < numIndexes; ++i)
             {
                 // use insert since duplicates are silently discarded
-                remap.insert(IndexRemap::value_type(*pBuffer++, remap.size()));
+                remap.emplace(*pBuffer++, remap.size());
                 // this will have mapped oldindex -> new index IF oldindex
                 // wasn't already there
             }
@@ -767,8 +766,10 @@ namespace Ogre {
         
         /// Iterator for iterating over contained regions
         typedef MapIterator<RegionMap> RegionIterator;
-        /// Get an iterator over the regions in this geometry
-        RegionIterator getRegionIterator(void);
+        /// Get an list of the regions in this geometry
+        const RegionMap& getRegions() const { return mRegionMap; }
+        /// @deprecated use getRegions()
+        OGRE_DEPRECATED RegionIterator getRegionIterator(void);
 
         /** Dump the contents of this StaticGeometry to a file for diagnostic
             purposes.

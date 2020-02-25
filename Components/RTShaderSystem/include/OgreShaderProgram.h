@@ -70,9 +70,6 @@ public:
     */
     UniformParameterPtr resolveAutoParameterReal(GpuProgramParameters::AutoConstantType autoType, GpuConstantType type, Real data, size_t size = 0);
 
-    /// @deprecated use resolveParameter(GpuProgramParameters::AutoConstantType, size_t)
-    OGRE_DEPRECATED UniformParameterPtr resolveAutoParameterInt(GpuProgramParameters::AutoConstantType autoType, size_t data, size_t size = 0);
-    
     /** Resolve uniform auto constant parameter with associated int data of this program.
     @param autoType The auto type of the desired parameter.
     @param type The desired data type of the auto parameter.
@@ -123,29 +120,22 @@ public:
     */
     const UniformParameterList& getParameters() const { return mParameters; };
 
-    /** Create new function in this program. Return the newly created function instance.
-    @param name The name of the function to create.
-    @param desc The description of the function.
-    @param functionType
-    */
-    Function* createFunction(const String& name, const String& desc, const Function::FunctionType functionType);
+    /// @deprecated do not use
+    OGRE_DEPRECATED Function* createFunction(const String& name, const String& desc, const Function::FunctionType functionType);
 
-    /** Get a function by a given name. Return NULL if no matching function found.
-    @param name The name of the function to search for.
-    */
+    /// @deprecated do not use
     Function* getFunctionByName(const String& name);
 
-    /** Get the function list of this program.
-    */
+    /// @deprecated do not use
     const ShaderFunctionList& getFunctions() const { return mFunctions; };
 
-    /** Set the entry point function.
-    @param function The function that will use as entry point of this program.
-    */
-    void setEntryPointFunction(Function* function) { mEntryPointFunction = function; }
+    /// @deprecated do not use
+    OGRE_DEPRECATED void setEntryPointFunction(Function* function) { mEntryPointFunction = function; }
 
-    /** Get the entry point function of this program.*/
+    /// @deprecated use getMain()
     Function* getEntryPointFunction()                    { return mEntryPointFunction; }
+
+    Function* getMain() { return mEntryPointFunction; }
 
     /** Add dependency for this program. Basically a filename that will be included in this
     program and provide predefined shader functions code.
@@ -196,6 +186,8 @@ public:
 
     const String& getPreprocessorDefines() const { return mPreprocessorDefines; }
 
+    /** Class destructor */
+    ~Program();
 // Protected methods.
 protected:
 
@@ -203,9 +195,6 @@ protected:
     @param type The type of this program.
     */
     Program(GpuProgramType type);
-
-    /** Class destructor */
-    ~Program();
 
     /** Destroy all parameters of this program. */
     void destroyParameters();
@@ -237,7 +226,7 @@ protected:
     // Whether to pass matrices as column-major.
     bool mColumnMajorMatrices;
 private:
-    friend class ProgramManager;
+    friend class TargetRenderState;
 };
 
 /** @} */

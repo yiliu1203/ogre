@@ -98,10 +98,12 @@ add_library(OgreGLSupport STATIC
     ${GLSUPPORT_HEADERS} ${PLATFORM_HEADERS} ${PLATFORM_SOURCES} ${GLSL_SOURCES} 
     src/OgreGLRenderSystemCommon.cpp 
     src/OgreGLTextureCommon.cpp
+    src/OgreGLDepthBufferCommon.cpp
     src/OgreGLRenderTexture.cpp
     src/OgreGLHardwarePixelBufferCommon.cpp
     src/OgreGLUniformCache.cpp
     src/OgreGLVertexArrayObject.cpp
+    src/OgreGLWindow.cpp
 )
 target_link_libraries(OgreGLSupport PUBLIC OgreMain PRIVATE ${PLATFORM_LIBS})
 target_include_directories(OgreGLSupport PUBLIC 

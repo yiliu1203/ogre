@@ -168,21 +168,15 @@ namespace Ogre {
     //-----------------------------------------------------------------------
     size_t Material::calculateSize(void) const
     {
-        size_t memSize = 0;
+        size_t memSize = sizeof(*this) + Resource::calculateSize();
 
         // Tally up techniques
-        Techniques::const_iterator i, iend;
-        iend = mTechniques.end();
-        for (i = mTechniques.begin(); i != iend; ++i)
+        for (auto t : mTechniques)
         {
-            memSize += (*i)->calculateSize();
+            memSize += t->calculateSize();
         }
 
-        memSize += sizeof(bool) * 3;
         memSize += mUnsupportedReasons.size() * sizeof(char);
-        memSize += sizeof(LodStrategy);
-
-        memSize += Resource::calculateSize();
 
         return memSize;
     }
@@ -350,7 +344,7 @@ namespace Ogre {
 
         // Insert won't replace if supported technique for this scheme/lod is
         // already there, which is what we want
-        lodtechs->insert(LodTechniques::value_type(t->getLodIndex(), t));
+        lodtechs->emplace(t->getLodIndex(), t);
 
     }
     //-----------------------------------------------------------------------------

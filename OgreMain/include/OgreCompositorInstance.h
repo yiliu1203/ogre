@@ -107,7 +107,7 @@ namespace Ogre {
             /// Set state to SceneManager and RenderSystem
             virtual void execute(SceneManager *sm, RenderSystem *rs) = 0;
         };
-        typedef std::map<int, MaterialPtr> QuadMaterialMap;
+        typedef std::map<int, MaterialPtr> OGRE_DEPRECATED QuadMaterialMap;
         typedef std::pair<int, RenderSystemOperation*> RenderSystemOpPair;
         typedef std::vector<RenderSystemOpPair> RenderSystemOpPairs;
         /** Operation setup for a RenderTarget (collected).
@@ -362,6 +362,9 @@ namespace Ogre {
         */
         void freeResources(bool forResizeOnly, bool clearReserveTextures);
 
+        CompositionTechnique::TextureDefinition*
+        resolveTexReference(const CompositionTechnique::TextureDefinition* texDef);
+
         /** Get RenderTarget for a named local texture.
         */
         RenderTarget *getTargetForTex(const String &name);
@@ -391,6 +394,7 @@ namespace Ogre {
         void notifyCameraChanged(Camera* camera);
 
         friend class CompositorChain;
+        friend class Compositor;
     };
     /** @} */
     /** @} */

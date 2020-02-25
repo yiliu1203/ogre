@@ -72,15 +72,6 @@ public:
 			"cursor and access widgets. Use WASD keys to move. You can increase/decrease terrains' LOD level using Page Up/Page Down."
 			"Use C to generate another random terrain";
 	}
-
-    void testCapabilities(const RenderSystemCapabilities* caps)
-	{
-        if (!caps->hasCapability(RSC_VERTEX_PROGRAM) || !caps->hasCapability(RSC_FRAGMENT_PROGRAM))
-        {
-			OGRE_EXCEPT(Exception::ERR_NOT_IMPLEMENTED, "Your graphics card does not support vertex or fragment shaders, "
-                        "so you cannot run this sample. Sorry!", "Sample_EndlessWorld::testCapabilities");
-        }
-	}
     
 	StringVector getRequiredPlugins()
 	{
@@ -405,14 +396,14 @@ protected:
 
 		LogManager::getSingleton().setLogDetail(LL_BOREME);
 
-		Vector3 lightdir(0.55, -0.3, 0.75);
-		lightdir.normalise();
-
 		Light* l = mSceneMgr->createLight("tstLight");
 		l->setType(Light::LT_DIRECTIONAL);
-		l->setDirection(lightdir);
 		l->setDiffuseColour(ColourValue::White);
 		l->setSpecularColour(ColourValue(0.4, 0.4, 0.4));
+
+	    auto ln = mSceneMgr->getRootSceneNode()->createChildSceneNode();
+	    ln->setDirection(Vector3(0.55, -0.3, 0.75).normalisedCopy());
+	    ln->attachObject(l);
 
 		mSceneMgr->setAmbientLight(ColourValue(0.2, 0.2, 0.2));
 

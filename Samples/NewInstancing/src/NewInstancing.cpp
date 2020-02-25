@@ -1,6 +1,8 @@
 #include "SamplePlugin.h"
 #include "NewInstancing.h"
 
+#include <random>
+
 using namespace Ogre;
 using namespace OgreBites;
 
@@ -16,32 +18,32 @@ static const char *c_instancingTechniques[] =
 
 static const char *c_materialsTechniques[] =
 {
-    "Examples/Instancing/ShaderBased/Robot",
+    "Examples/Instancing/RTSS/Robot",
     "Examples/Instancing/VTF/Robot",
     "Examples/Instancing/HWBasic/Robot",
     "Examples/Instancing/VTF/HW/Robot",
     "Examples/Instancing/VTF/HW/LUT/Robot",
-    "Examples/Instancing/ShaderBased/Robot"
+    "Examples/Instancing/RTSS/Robot"
 };
 
 static const char *c_materialsTechniques_dq[] =
 {
-    "Examples/Instancing/ShaderBased/Robot_dq",
+    "Examples/Instancing/RTSS/Robot_dq",
     "Examples/Instancing/VTF/Robot_dq",
     "Examples/Instancing/HWBasic/Robot",
     "Examples/Instancing/VTF/HW/Robot_dq",
     "Examples/Instancing/VTF/HW/LUT/Robot_dq",
-    "Examples/Instancing/ShaderBased/Robot_dq"
+    "Examples/Instancing/RTSS/Robot_dq"
 };
 
 static const char *c_materialsTechniques_dq_two_weights[] =
 {
-    "Examples/Instancing/ShaderBased/spine_dq_two_weights",
+    "Examples/Instancing/RTSS/spine_dq_two_weights",
     "Examples/Instancing/VTF/spine_dq_two_weights",
     "Examples/Instancing/HWBasic/spine",
     "Examples/Instancing/VTF/HW/spine_dq_two_weights",
     "Examples/Instancing/VTF/HW/LUT/spine_dq_two_weights",
-    "Examples/Instancing/ShaderBased/spine_dq_two_weights"
+    "Examples/Instancing/RTSS/spine_dq_two_weights"
 };
 
 static const char *c_meshNames[] =
@@ -101,6 +103,29 @@ bool Sample_NewInstancing::keyPressed(const KeyboardEvent& evt)
 //------------------------------------------------------------------------------
 void Sample_NewInstancing::setupContent()
 {
+#ifdef OGRE_BUILD_COMPONENT_RTSHADERSYSTEM
+    // Make this viewport work with shader generator scheme.
+    mViewport->setMaterialScheme(RTShader::ShaderGenerator::DEFAULT_SCHEME_NAME);
+    RTShader::ShaderGenerator& rtShaderGen = RTShader::ShaderGenerator::getSingleton();
+    RTShader::RenderState* schemRenderState = rtShaderGen.getRenderState(RTShader::ShaderGenerator::DEFAULT_SCHEME_NAME);
+    RTShader::SubRenderState* subRenderState = rtShaderGen.createSubRenderState<RTShader::IntegratedPSSM3>();
+    schemRenderState->addTemplateSubRenderState(subRenderState);
+
+    //Add the hardware skinning to the shader generator default render state
+    subRenderState = mShaderGenerator->createSubRenderState<RTShader::HardwareSkinning>();
+    schemRenderState->addTemplateSubRenderState(subRenderState);
+
+    // increase max bone count for higher efficiency
+    RTShader::HardwareSkinningFactory::getSingleton().setMaxCalculableBoneCount(80);
+
+    // re-generate shaders to include new SRSs
+    rtShaderGen.invalidateScheme(RTShader::ShaderGenerator::DEFAULT_SCHEME_NAME);
+    rtShaderGen.validateScheme(RTShader::ShaderGenerator::DEFAULT_SCHEME_NAME);
+
+    // update scheme for FFP supporting rendersystems
+    MaterialManager::getSingleton().setActiveScheme(mViewport->getMaterialScheme());
+#endif
+
     //Initialize the techniques and current mesh variables
     mInstancingTechnique    = 0;
     mCurrentMesh            = 0;
@@ -114,18 +139,15 @@ void Sample_NewInstancing::setupContent()
 
     if (Ogre::Root::getSingletonPtr()->getRenderSystem()->getName().find("OpenGL ES 2") == String::npos)
     {
-        mSceneMgr->setShadowTextureConfig( 0, 2048, 2048, PF_X8R8G8B8 ); // PF_FLOAT32_R currently broken on all GL RS
+        mSceneMgr->setShadowTextureConfig( 0, 2048, 2048, PF_FLOAT32_R );
     }
     else
     {
         // Use a smaller texture for GL ES 3.0
-        mSceneMgr->setShadowTextureConfig( 0, 512, 512, PF_X8R8G8B8 );
+        mSceneMgr->setShadowTextureConfig( 0, 512, 512, PF_FLOAT32_R );
     }
 
-    //LiSPSMShadowCameraSetup *shadowCameraSetup = new LiSPSMShadowCameraSetup();
-    //PlaneOptimalShadowCameraSetup *shadowCameraSetup = new PlaneOptimalShadowCameraSetup();
-
-    mSceneMgr->setShadowCameraSetup( FocusedShadowCameraSetup::create() );
+    mSceneMgr->setShadowCameraSetup( LiSPSMShadowCameraSetup::create() );
 
     mEntities.reserve( NUM_INST_ROW * NUM_INST_COLUMN );
     mSceneNodes.reserve( NUM_INST_ROW * NUM_INST_COLUMN );
@@ -138,7 +160,7 @@ void Sample_NewInstancing::setupContent()
 
     // create a ground entity from our mesh and attach it to the origin
     Entity* ground = mSceneMgr->createEntity("Ground", "ground");
-    ground->setMaterialName("Examples/Instancing/Misc/Grass");
+    ground->setMaterialName("Examples/GrassFloor");
     ground->setCastShadows(false);
     mSceneMgr->getRootSceneNode()->attachObject(ground);
 
@@ -160,34 +182,19 @@ void Sample_NewInstancing::setupLighting()
 {
     mSceneMgr->setAmbientLight( ColourValue( 0.40f, 0.40f, 0.40f ) );
 
-    ColourValue lightColour( 1, 0.5, 0.3 );
-
-    //Create main (point) light
+    //Create main light
     Light* light = mSceneMgr->createLight();
-    light->setDiffuseColour(lightColour);
-    mSceneMgr->getRootSceneNode()->createChildSceneNode(Vector3( 0.0f, 25.0f, 0.0f ))->attachObject(light);
+    light->setType( Light::LT_DIRECTIONAL );
+    light->setDiffuseColour(1, 0.5, 0.3);
+    auto n = mSceneMgr->getRootSceneNode()->createChildSceneNode();
+    n->attachObject(light);
+    n->setDirection(0, -1, -1);
     light->setSpecularColour( 0.6, 0.82, 1.0 );
-    light->setAttenuation( 3500, 0.085, 0.00008, 0.00006 );
-    light->setCastShadows( false );
-
-    //Create a dummy spot light for shadows
-    light = mSceneMgr->createLight();
-    light->setType( Light::LT_SPOTLIGHT );
-    light->setDiffuseColour( ColourValue( 0.15f, 0.35f, 0.44f ) );
-    SceneNode* ln = mSceneMgr->getRootSceneNode()->createChildSceneNode(Vector3( 250.0f, 200.0f, 250.0f ));
-    ln->attachObject(light);
-    ln->setDirection(-Vector3::UNIT_SCALE );
-    light->setSpecularColour( 0.2, 0.12, 0.11 );
-    light->setAttenuation( 3500, 0.005, 0.00002, 0.00001 );
-    light->setSpotlightRange( Degree(80), Degree(90) );
-    light->setCastShadows( true );
-    light->setLightMask( 0x00000000 );
 }
 
 //------------------------------------------------------------------------------
 void Sample_NewInstancing::switchInstancingTechnique()
 {
-    randGenerator.randomize();
     //mInstancingTechnique = (mInstancingTechnique+1) % (NUM_TECHNIQUES+1);
     mInstancingTechnique = mTechniqueMenu->getSelectionIndex();
 
@@ -310,6 +317,7 @@ void Sample_NewInstancing::switchSkinningTechnique(int index)
 //------------------------------------------------------------------------------
 void Sample_NewInstancing::createEntities()
 {
+    std::mt19937 rng;
     for( int i=0; i<NUM_INST_ROW * NUM_INST_COLUMN; ++i )
     {
         //Create the non-instanced entity. Use the same shader as shader-based because:
@@ -324,14 +332,15 @@ void Sample_NewInstancing::createEntities()
         if (mAnimations.insert( anim ).second)
         {
             anim->setEnabled( true );
-            anim->addTime( randGenerator.nextFloat() * 10 ); //Random start offset
+            anim->addTime( float(rng())/rng.max() * 10 ); //Random start offset
         }
     }
 }
 //------------------------------------------------------------------------------
 void Sample_NewInstancing::createInstancedEntities()
 {
-
+    std::mt19937 rng;
+    std::mt19937 orng; // separate oriention rng for consistency with other techniques
     for( int i=0; i<NUM_INST_ROW; ++i )
     {
         for( int j=0; j<NUM_INST_COLUMN; ++j )
@@ -346,14 +355,14 @@ void Sample_NewInstancing::createInstancedEntities()
                 //Get the animation
                 AnimationState *anim = ent->getAnimationState( "Walk" );
                 anim->setEnabled( true );
-                anim->addTime( randGenerator.nextFloat() * 10); //Random start offset
+                anim->addTime( float(rng())/rng.max() * 10); //Random start offset
                 mAnimations.insert( anim );
             }
 
             if ((mInstancingTechnique < NUM_TECHNIQUES) && (!mUseSceneNodes->isChecked()))
             {
                 mMovedInstances.push_back( ent );
-                ent->setOrientation(Quaternion(Radian(randGenerator.nextFloat() * 10 * 3.14159265359f), Vector3::UNIT_Y));
+                ent->setOrientation(Quaternion(Radian(float(orng())/orng.max() * 10 * Math::PI), Vector3::UNIT_Y));
                 ent->setPosition( Ogre::Vector3(mEntities[0]->getBoundingRadius() * (i - NUM_INST_ROW * 0.5f), 0,
                     mEntities[0]->getBoundingRadius() * (j - NUM_INST_COLUMN * 0.5f)) );
             }
@@ -367,6 +376,7 @@ void Sample_NewInstancing::createSceneNodes()
     //they behave like regular Entities on this.
     SceneNode *rootNode = mSceneMgr->getRootSceneNode();
 
+    std::mt19937 rng;
     for( int i=0; i<NUM_INST_ROW; ++i )
     {
         for( int j=0; j<NUM_INST_COLUMN; ++j )
@@ -376,7 +386,7 @@ void Sample_NewInstancing::createSceneNodes()
             {
                 SceneNode *sceneNode = rootNode->createChildSceneNode();
                 sceneNode->attachObject( mEntities[idx] );
-                sceneNode->yaw( Radian( randGenerator.nextFloat() * 10 * 3.14159265359f )); //Random orientation
+                sceneNode->yaw( Radian( float(rng())/rng.max() * 10 * Math::PI )); //Random orientation
                 sceneNode->setPosition( mEntities[idx]->getBoundingRadius() * (i - NUM_INST_ROW * 0.5f), 0,
                     mEntities[idx]->getBoundingRadius() * (j - NUM_INST_COLUMN * 0.5f) );
                 mSceneNodes.push_back( sceneNode );
@@ -491,7 +501,7 @@ void Sample_NewInstancing::moveUnits( float timeSinceLast )
             if( planeNormal != Vector3::ZERO )
             {
                 const Vector3 vDir( (*itor)->getOrientation().xAxis().normalisedCopy() );
-                (*itor)->setOrientation( lookAt( planeNormal.reflect( vDir ).normalisedCopy() ) );
+                (*itor)->setOrientation( lookAt( planeNormal.reflect( vDir ) ) );
                 (*itor)->setPosition( entityPos );
             }
 
@@ -539,7 +549,7 @@ void Sample_NewInstancing::moveUnits( float timeSinceLast )
             if( planeNormal != Vector3::ZERO )
             {
                 const Vector3 vDir(pEnt->getOrientation().xAxis().normalisedCopy() );
-                pEnt->setOrientation( lookAt( planeNormal.reflect( vDir ).normalisedCopy() ), false );
+                pEnt->setOrientation( lookAt( planeNormal.reflect( vDir ) ), false );
                 pEnt->setPosition( entityPos, false);
             }
 
@@ -554,16 +564,7 @@ void Sample_NewInstancing::moveUnits( float timeSinceLast )
 //------------------------------------------------------------------------------
 Quaternion Sample_NewInstancing::lookAt( const Vector3 &normDir )
 {
-    Quaternion retVal;
-    Vector3 xVec = Vector3::UNIT_Y.crossProduct( normDir );
-    xVec.normalise();
-
-    Vector3 yVec = normDir.crossProduct( xVec );
-    yVec.normalise();
-
-    retVal.FromAxes( xVec, yVec, normDir );
-
-    return retVal;
+    return Math::lookRotation(normDir.normalisedCopy(), Vector3::UNIT_Y);
 }
 
 //------------------------------------------------------------------------------
@@ -683,13 +684,6 @@ void Sample_NewInstancing::sliderMoved( Slider* slider )
 //------------------------------------------------------------------------------
 void Sample_NewInstancing::testCapabilities( const RenderSystemCapabilities* caps )
 {
-    if (!caps->hasCapability(RSC_VERTEX_PROGRAM) || !caps->hasCapability(RSC_FRAGMENT_PROGRAM))
-    {
-        OGRE_EXCEPT(Exception::ERR_NOT_IMPLEMENTED, "Your graphics card does not support vertex and "
-            "fragment programs, so you cannot run this sample. Sorry!",
-            "NewInstancing::testCapabilities");
-    }
-
     if (!GpuProgramManager::getSingleton().isSyntaxSupported("glsl") &&
         !GpuProgramManager::getSingleton().isSyntaxSupported("glsl300es") &&
         !GpuProgramManager::getSingleton().isSyntaxSupported("fp40") &&

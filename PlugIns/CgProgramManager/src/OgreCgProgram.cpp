@@ -65,7 +65,7 @@ namespace Ogre {
 					syntaxSupported = true;
 					useDelegate = true;
 				}
-			
+
 			}
 
 			if (syntaxSupported)
@@ -82,9 +82,9 @@ namespace Ogre {
 				}
 				mSelectedCgProfile = cgGetProfile(selectedProfileForFind.c_str());
 				// Check for errors
-				checkForCgError("CgProgram::selectProfile", 
+				checkForCgError("CgProgram::selectProfile",
 					"Unable to find CG profile enum for program " + mName + ": ", mCgContext);
-				
+
 				// do we need a delegate?
 				if (useDelegate && !mDelegate)
 				{
@@ -104,7 +104,7 @@ namespace Ogre {
 					HighLevelGpuProgramManager::getSingleton().remove(rs);
 					mDelegate.reset();
 				}
-				
+
 				break;
 			}
 		}
@@ -239,9 +239,9 @@ namespace Ogre {
 	//-----------------------------------------------------------------------
 	void CgProgram::getMicrocodeFromCache(uint32 id)
 	{
-		GpuProgramManager::Microcode cacheMicrocode = 
+		GpuProgramManager::Microcode cacheMicrocode =
 			GpuProgramManager::getSingleton().getMicrocodeFromCache(id);
-		
+
 		cacheMicrocode->seek(0);
 
 		// get size of string
@@ -255,25 +255,25 @@ namespace Ogre {
 		// get size of param map
 		size_t parametersMapSize = 0;
 		cacheMicrocode->read(&parametersMapSize, sizeof(size_t));
-				
+
 		// get params
 		for(size_t i = 0 ; i < parametersMapSize ; i++)
 		{
 			String paramName;
 			size_t stringSize = 0;
 			GpuConstantDefinition def;
-			
+
 			// get string size
 			cacheMicrocode->read(&stringSize, sizeof(size_t));
 
 			// get string
 			paramName.resize(stringSize);
 			cacheMicrocode->read(&paramName[0], stringSize);
-		
+
 			// get def
 			cacheMicrocode->read( &def, sizeof(GpuConstantDefinition));
 
-			mParametersMap.insert(GpuConstantDefinitionMap::value_type(paramName, def));
+			mParametersMap.emplace(paramName, def);
 		}
 
 		if (mDelegate)
@@ -303,7 +303,7 @@ namespace Ogre {
 	void CgProgram::compileMicrocode(void)
 	{
 		// Create Cg Program
-  
+
 		/// Program handle
 		CGprogram cgProgram;
 
@@ -316,16 +316,16 @@ namespace Ogre {
 		}
 		buildArgs();
 		// deal with includes
-		String sourceToUse = resolveCgIncludes(mSource, this, mFilename);
+		String sourceToUse = _resolveIncludes(mSource, this, mFilename);
 
-		cgProgram = cgCreateProgram(mCgContext, CG_SOURCE, sourceToUse.c_str(), 
+		cgProgram = cgCreateProgram(mCgContext, CG_SOURCE, sourceToUse.c_str(),
 			mSelectedCgProfile, mEntryPoint.c_str(), const_cast<const char**>(mCgArguments));
 
 		// Test
 		//LogManager::getSingleton().logMessage(cgGetProgramString(mCgProgram, CG_COMPILED_PROGRAM));
 
 		// Check for errors
-		checkForCgError("CgProgram::compileMicrocode", 
+		checkForCgError("CgProgram::compileMicrocode",
 			"Unable to compile Cg program " + mName + ": ", mCgContext);
 
 		CGerror error = cgGetError();
@@ -357,8 +357,8 @@ namespace Ogre {
 
 			// Unload Cg Program - we don't need it anymore
 			cgDestroyProgram(cgProgram);
-			//checkForCgError("CgProgram::unloadImpl", 
-			//  "Error while unloading Cg program " + mName + ": ", 
+			//checkForCgError("CgProgram::unloadImpl",
+			//  "Error while unloading Cg program " + mName + ": ",
 			//  mCgContext);
 			cgProgram = 0;
 		}
@@ -376,7 +376,7 @@ namespace Ogre {
 													 mParametersMapSizeAsBuffer);
 
 		// create microcode
-		GpuProgramManager::Microcode newMicrocode = 
+		GpuProgramManager::Microcode newMicrocode =
 			GpuProgramManager::getSingleton().createMicrocode(sizeOfMicrocode);
 
 		newMicrocode->seek(0);
@@ -464,7 +464,7 @@ namespace Ogre {
 			{
 				// Create a high-level program, give it the same name as us
                 HighLevelGpuProgramManager::getSingleton().remove(mName, mGroup);
-				HighLevelGpuProgramPtr vp = 
+				HighLevelGpuProgramPtr vp =
 					HighLevelGpuProgramManager::getSingleton().createProgram(
 					mName, mGroup, "hlsl", mType);
 				vp->setSource(mProgramString);
@@ -478,12 +478,12 @@ namespace Ogre {
 			else
 			{
 				// Create a low-level program, give it the same name as us
-                mAssemblerProgram = 
+                mAssemblerProgram =
 					GpuProgramManager::getSingleton().createProgramFromString(
-					mName, 
+					mName,
 					mGroup,
 					mProgramString,
-					mType, 
+					mType,
 					mSelectedProfile);
 			}
 			// Shader params need to be forwarded to low level implementation
@@ -513,7 +513,7 @@ namespace Ogre {
 		// HLSL delegates need a target to compile to.
 		// Return value for GLSL delegates is ignored.
 		GpuProgramManager* gpuMgr = GpuProgramManager::getSingletonPtr();
-		
+
 		if (mSelectedCgProfile == CG_PROFILE_HLSLF)
 		{
 			static const String fpProfiles[] = {
@@ -540,7 +540,7 @@ namespace Ogre {
 #endif
 #if(CG_VERSION_NUM >= 2200)
 			"vs_4_0",
-#endif              
+#endif
 			"vs_3_0", "vs_2_x", "vs_2_0", "vs_1_4", "vs_1_3", "vs_1_2", "vs_1_1"};
 			static const size_t numVpProfiles = sizeof(vpProfiles)/sizeof(String);
 			// find the highest profile available
@@ -571,8 +571,8 @@ namespace Ogre {
 		};
 		std::vector<ReplacementMark> replacements;
 
-		HighLevelOutputFixer(const String& src, const GpuConstantDefinitionMap& params, 
-			const std::map<String,int>& samplers, bool isGLSL) 
+		HighLevelOutputFixer(const String& src, const GpuConstantDefinitionMap& params,
+			const std::map<String,int>& samplers, bool isGLSL)
 			: source(src), paramMap(params), samplerMap(samplers), glsl(isGLSL), start(0)
 		{
 			findNameMappings();
@@ -725,8 +725,8 @@ namespace Ogre {
 	//-----------------------------------------------------------------------
 	void CgProgram::fixHighLevelOutput(String& hlSource)
 	{
-		// Cg chooses to change parameter names when translating to another 
-		// high level language, possibly to avoid clashes with reserved keywords. 
+		// Cg chooses to change parameter names when translating to another
+		// high level language, possibly to avoid clashes with reserved keywords.
 		// We need to revert that, otherwise Ogre parameter mappings fail.
 		// Cg logs its renamings in the comments at the beginning of the
 		// processed source file. We can get them from there.
@@ -734,8 +734,8 @@ namespace Ogre {
 #if OGRE_DEBUG_MODE || 1
 		LogManager::getSingleton().stream() << "Cg high level output for " << getName() << ":\n" << hlSource;
 #endif
-		hlSource = HighLevelOutputFixer(hlSource, mParametersMap, mSamplerRegisterMap, 
-			mSelectedCgProfile == CG_PROFILE_GLSLV || mSelectedCgProfile == CG_PROFILE_GLSLF || 
+		hlSource = HighLevelOutputFixer(hlSource, mParametersMap, mSamplerRegisterMap,
+			mSelectedCgProfile == CG_PROFILE_GLSLV || mSelectedCgProfile == CG_PROFILE_GLSLF ||
 			mSelectedCgProfile == CG_PROFILE_GLSLG).output;
 #if OGRE_DEBUG_MODE || 1
 		LogManager::getSingleton().stream() << "Cleaned high level output for " << getName() << ":\n" << hlSource;
@@ -746,6 +746,7 @@ namespace Ogre {
 	//-----------------------------------------------------------------------
 	void CgProgram::loadHighLevelSafe()
 	{
+	    safePrepare();
 		OGRE_LOCK_AUTO_MUTEX;
 		if (this->isSupported())
 			loadHighLevel();
@@ -893,7 +894,7 @@ namespace Ogre {
 
 		if ( mProgramString.empty() )
 			return;
-				
+
 		mConstantDefs->floatBufferSize = mFloatLogicalToPhysical->bufferSize;
 		mConstantDefs->intBufferSize = mIntLogicalToPhysical->bufferSize;
 
@@ -901,31 +902,25 @@ namespace Ogre {
 		GpuConstantDefinitionMap::const_iterator iterE = mParametersMap.end();
 		for (; iter != iterE ; iter++)
 		{
-			const String & paramName = iter->first;
 			GpuConstantDefinition def = iter->second;
 
-			mConstantDefs->map.insert(GpuConstantDefinitionMap::value_type(iter->first, iter->second));
+			mConstantDefs->map.emplace(iter->first, iter->second);
 
 			// Record logical / physical mapping
 			if (def.isFloat())
 			{
 							OGRE_LOCK_MUTEX(mFloatLogicalToPhysical->mutex);
-				mFloatLogicalToPhysical->map.insert(
-					GpuLogicalIndexUseMap::value_type(def.logicalIndex, 
-						GpuLogicalIndexUse(def.physicalIndex, def.arraySize * def.elementSize, GPV_GLOBAL)));
+				mFloatLogicalToPhysical->map.emplace(def.logicalIndex,
+						GpuLogicalIndexUse(def.physicalIndex, def.arraySize * def.elementSize, GPV_GLOBAL));
 				mFloatLogicalToPhysical->bufferSize += def.arraySize * def.elementSize;
 			}
 			else
 			{
 							OGRE_LOCK_MUTEX(mIntLogicalToPhysical->mutex);
-				mIntLogicalToPhysical->map.insert(
-					GpuLogicalIndexUseMap::value_type(def.logicalIndex, 
-						GpuLogicalIndexUse(def.physicalIndex, def.arraySize * def.elementSize, GPV_GLOBAL)));
+				mIntLogicalToPhysical->map.emplace(def.logicalIndex,
+						GpuLogicalIndexUse(def.physicalIndex, def.arraySize * def.elementSize, GPV_GLOBAL));
 				mIntLogicalToPhysical->bufferSize += def.arraySize * def.elementSize;
 			}
-
-			// Deal with array indexing
-			mConstantDefs->generateConstantDefinitionArrayEntries(paramName, def);
 		}
 	}
 	//---------------------------------------------------------------------
@@ -944,7 +939,7 @@ namespace Ogre {
 				paramType != CG_SAMPLER3D &&
 				paramType != CG_SAMPLERCUBE &&
 				paramType != CG_SAMPLERRECT &&
-				cgGetParameterDirection(parameter) != CG_OUT && 
+				cgGetParameterDirection(parameter) != CG_OUT &&
 				cgIsParameterReferenced(parameter))
 			{
 				int arraySize;
@@ -1027,7 +1022,7 @@ namespace Ogre {
 					def.logicalIndex = logicalIndex;
 					if( mParametersMap.find(paramName) == mParametersMap.end())
 					{
-						mParametersMap.insert(GpuConstantDefinitionMap::value_type(paramName, def));
+						mParametersMap.emplace(paramName, def);
 						mParametersMapSizeAsBuffer += sizeof(size_t);
 						mParametersMapSizeAsBuffer += paramName.size();
 						mParametersMapSizeAsBuffer += sizeof(GpuConstantDefinition);
@@ -1037,22 +1032,20 @@ namespace Ogre {
 					if (def.isFloat())
 					{
 											OGRE_LOCK_MUTEX(mFloatLogicalToPhysical->mutex);
-						mFloatLogicalToPhysical->map.insert(
-							GpuLogicalIndexUseMap::value_type(def.logicalIndex, 
-								GpuLogicalIndexUse(def.physicalIndex, def.arraySize * def.elementSize, GPV_GLOBAL)));
+						mFloatLogicalToPhysical->map.emplace(def.logicalIndex,
+								GpuLogicalIndexUse(def.physicalIndex, def.arraySize * def.elementSize, GPV_GLOBAL));
 						mFloatLogicalToPhysical->bufferSize += def.arraySize * def.elementSize;
 					}
 					else
 					{
 											OGRE_LOCK_MUTEX(mIntLogicalToPhysical->mutex);
-						mIntLogicalToPhysical->map.insert(
-							GpuLogicalIndexUseMap::value_type(def.logicalIndex, 
-								GpuLogicalIndexUse(def.physicalIndex, def.arraySize * def.elementSize, GPV_GLOBAL)));
+						mIntLogicalToPhysical->map.emplace(def.logicalIndex,
+								GpuLogicalIndexUse(def.physicalIndex, def.arraySize * def.elementSize, GPV_GLOBAL));
 						mIntLogicalToPhysical->bufferSize += def.arraySize * def.elementSize;
 					}
 
 					break;
-				}                   
+				}
 			}
 
 			// now handle uniform samplers. This is needed to fix their register positions
@@ -1063,7 +1056,7 @@ namespace Ogre {
 				paramType == CG_SAMPLER3D ||
 				paramType == CG_SAMPLERCUBE ||
 				paramType == CG_SAMPLERRECT) &&
-				cgGetParameterDirection(parameter) != CG_OUT && 
+				cgGetParameterDirection(parameter) != CG_OUT &&
 				cgIsParameterReferenced(parameter))
 			{
 				String paramName = cgGetParameterName(parameter);
@@ -1118,10 +1111,10 @@ namespace Ogre {
 			parameter = cgGetNextParameter(parameter);
 		}
 
-		
+
 	}
 	//-----------------------------------------------------------------------
-	void CgProgram::mapTypeAndElementSize(CGtype cgType, bool isRegisterCombiner, 
+	void CgProgram::mapTypeAndElementSize(CGtype cgType, bool isRegisterCombiner,
 		GpuConstantDefinition& def) const
 	{
 		if (isRegisterCombiner)
@@ -1210,11 +1203,12 @@ namespace Ogre {
 		}
 	}
 	//-----------------------------------------------------------------------
-	CgProgram::CgProgram(ResourceManager* creator, const String& name, 
-		ResourceHandle handle, const String& group, bool isManual, 
+	CgProgram::CgProgram(ResourceManager* creator, const String& name,
+		ResourceHandle handle, const String& group, bool isManual,
 		ManualResourceLoader* loader, CGcontext context)
-		: HighLevelGpuProgram(creator, name, handle, group, isManual, loader), 
-		mCgContext(context), 
+		: HighLevelGpuProgram(creator, name, handle, group, isManual, loader),
+		mCgContext(context),
+        mEntryPoint("main"),
 		mSelectedCgProfile(CG_PROFILE_UNKNOWN), mCgArguments(0), mParametersMapSizeAsBuffer(0)
 	{
 		if (createParamDictionary("CgProgram"))
@@ -1223,17 +1217,17 @@ namespace Ogre {
 
 			ParamDictionary* dict = getParamDictionary();
 
-			dict->addParameter(ParameterDef("entry_point", 
+			dict->addParameter(ParameterDef("entry_point",
 				"The entry point for the Cg program.",
 				PT_STRING),&msCmdEntryPoint);
-			dict->addParameter(ParameterDef("profiles", 
+			dict->addParameter(ParameterDef("profiles",
 				"Space-separated list of Cg profiles supported by this profile.",
 				PT_STRING),&msCmdProfiles);
-			dict->addParameter(ParameterDef("compile_arguments", 
+			dict->addParameter(ParameterDef("compile_arguments",
 				"A string of compilation arguments to pass to the Cg compiler.",
 				PT_STRING),&msCmdArgs);
 		}
-		
+
 	}
 	//-----------------------------------------------------------------------
 	CgProgram::~CgProgram()
@@ -1267,121 +1261,7 @@ namespace Ogre {
 		mProfiles = profiles;
 		selectProfile();
 	}
-	//-----------------------------------------------------------------------
-	String CgProgram::resolveCgIncludes(const String& inSource, Resource* resourceBeingLoaded, const String& fileName)
-	{
-		String outSource;
-		// output will be at least this big
-		outSource.reserve(inSource.length());
 
-		size_t startMarker = 0;
-		size_t i = inSource.find("#include");
-		while (i != String::npos)
-		{
-			size_t includePos = i;
-			size_t afterIncludePos = includePos + 8;
-			size_t newLineBefore = inSource.rfind('\n', includePos);
-
-			// check we're not in a comment
-			size_t lineCommentIt = inSource.rfind("//", includePos);
-			if (lineCommentIt != String::npos)
-			{
-				if (newLineBefore == String::npos || lineCommentIt > newLineBefore)
-				{
-					// commented
-					i = inSource.find("#include", afterIncludePos);
-					continue;
-				}
-
-			}
-			size_t blockCommentIt = inSource.rfind("/*", includePos);
-			if (blockCommentIt != String::npos)
-			{
-				size_t closeCommentIt = inSource.rfind("*/", includePos);
-				if (closeCommentIt == String::npos || closeCommentIt < blockCommentIt)
-				{
-					// commented
-					i = inSource.find("#include", afterIncludePos);
-					continue;
-				}
-
-			}
-
-			// find following newline (or EOF)
-			size_t newLineAfter = inSource.find('\n', afterIncludePos);
-			// find include file string container
-			String endDelimeter = "\"";
-			size_t startIt = inSource.find('\"', afterIncludePos);
-			if (startIt == String::npos || startIt > newLineAfter)
-			{
-				// try <>
-				startIt = inSource.find('<', afterIncludePos);
-				if (startIt == String::npos || startIt > newLineAfter)
-				{
-					OGRE_EXCEPT(Exception::ERR_INTERNAL_ERROR,
-						"Badly formed #include directive (expected \" or <) in file "
-						+ fileName + ": " + inSource.substr(includePos, newLineAfter-includePos),
-						"CgProgram::preprocessor");
-				}
-				else
-				{
-					endDelimeter = ">";
-				}
-			}
-			size_t endIt = inSource.find(endDelimeter, startIt+1);
-			if (endIt == String::npos || endIt <= startIt)
-			{
-				OGRE_EXCEPT(Exception::ERR_INTERNAL_ERROR,
-					"Badly formed #include directive (expected " + endDelimeter + ") in file "
-					+ fileName + ": " + inSource.substr(includePos, newLineAfter-includePos),
-					"CgProgram::preprocessor");
-			}
-
-			// extract filename
-			String filename(inSource.substr(startIt+1, endIt-startIt-1));
-
-			// open included file
-			DataStreamPtr resource = ResourceGroupManager::getSingleton().
-				openResource(filename, resourceBeingLoaded->getGroup(), resourceBeingLoaded);
-
-			// replace entire include directive line
-			// copy up to just before include
-			if (newLineBefore != String::npos && newLineBefore >= startMarker)
-				outSource.append(inSource.substr(startMarker, newLineBefore-startMarker+1));
-
-			size_t lineCount = 0;
-			size_t lineCountPos = 0;
-			
-			// Count the line number of #include statement
-			lineCountPos = outSource.find('\n');
-			while(lineCountPos != String::npos)
-			{
-				lineCountPos = outSource.find('\n', lineCountPos+1);
-				lineCount++;
-			}
-
-			// Add #line to the start of the included file to correct the line count
-			outSource.append("#line 1 \"" + filename + "\"\n");
-
-			outSource.append(resource->getAsString());
-
-			// Add #line to the end of the included file to correct the line count
-			outSource.append("\n#line " + Ogre::StringConverter::toString(lineCount) + 
-				"\"" + fileName + "\"\n");
-
-			startMarker = newLineAfter;
-
-			if (startMarker != String::npos)
-				i = inSource.find("#include", startMarker);
-			else
-				i = String::npos;
-
-		}
-		// copy any remaining characters
-		outSource.append(inSource.substr(startMarker));
-
-		return outSource;
-	}
 	//-----------------------------------------------------------------------
 	const String& CgProgram::getLanguage(void) const
 	{

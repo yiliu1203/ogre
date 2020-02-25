@@ -83,19 +83,23 @@ namespace Ogre
         /// Supports fixed-function DOT3 texture blend
         /// @deprecated All targetted APIs by Ogre support this feature
         RSC_DOT3                    = OGRE_CAPS_VALUE(CAPS_CATEGORY_COMMON, 3),
-        /// Supports cube mapping
-        RSC_CUBEMAPPING             = OGRE_CAPS_VALUE(CAPS_CATEGORY_COMMON, 4),
+        /// Supports linewidth != 1.0
+        RSC_WIDE_LINES              = OGRE_CAPS_VALUE(CAPS_CATEGORY_COMMON, 4),
         /// Supports hardware stencil buffer
         RSC_HWSTENCIL               = OGRE_CAPS_VALUE(CAPS_CATEGORY_COMMON, 5),
-        /// @deprecated use RenderSystemCapabilities::getVertexTextureUnitsShared
-        RSC_COMPLETE_TEXTURE_BINDING = OGRE_CAPS_VALUE(CAPS_CATEGORY_COMMON, 6),
+        /// Supports read/write buffers with atomic counters (e.g. RWStructuredBuffer or SSBO)
+        RSC_READ_WRITE_BUFFERS      = OGRE_CAPS_VALUE(CAPS_CATEGORY_COMMON, 6),
+        /// @deprecated check RSC_READ_WRITE_BUFFERS
+        RSC_ATOMIC_COUNTERS         = RSC_READ_WRITE_BUFFERS,
         /// Supports compressed textures in the ASTC format
         RSC_TEXTURE_COMPRESSION_ASTC = OGRE_CAPS_VALUE(CAPS_CATEGORY_COMMON, 7),
         /// Supports 32bit hardware index buffers
         RSC_32BIT_INDEX             = OGRE_CAPS_VALUE(CAPS_CATEGORY_COMMON, 8),
         /// Supports vertex programs (vertex shaders)
+        /// @deprecated All targetted APIs by Ogre support this feature
         RSC_VERTEX_PROGRAM          = OGRE_CAPS_VALUE(CAPS_CATEGORY_COMMON, 9),
         /// Supports fragment programs (pixel shaders)
+        /// @deprecated All targetted APIs by Ogre support this feature
         RSC_FRAGMENT_PROGRAM        = OGRE_CAPS_VALUE(CAPS_CATEGORY_COMMON, 10),
         /// Supports performing a scissor test to exclude areas of the screen
 		/// @deprecated All targetted APIs by Ogre support this feature
@@ -186,10 +190,6 @@ namespace Ogre
         RSC_COMPUTE_PROGRAM = OGRE_CAPS_VALUE(CAPS_CATEGORY_COMMON_2, 23),
         /// Supports asynchronous hardware occlusion queries
         RSC_HWOCCLUSION_ASYNCHRONOUS = OGRE_CAPS_VALUE(CAPS_CATEGORY_COMMON_2, 24),
-        /// Supports asynchronous hardware occlusion queries
-        RSC_ATOMIC_COUNTERS = OGRE_CAPS_VALUE(CAPS_CATEGORY_COMMON_2, 25),
-        /// Supports linewidth != 1.0
-        RSC_WIDE_LINES = OGRE_CAPS_VALUE(CAPS_CATEGORY_COMMON_2, 26),
 
         // ***** DirectX specific caps *****
         /// Is DirectX feature "per stage constants" supported
@@ -442,7 +442,8 @@ namespace Ogre
             mStencilBufferBitDepth = num;
         }
 
-        void setNumVertexBlendMatrices(ushort num)
+        /// @deprecated do not use
+        OGRE_DEPRECATED void setNumVertexBlendMatrices(ushort num)
         {
             mNumVertexBlendMatrices = num;
         }
@@ -491,9 +492,8 @@ namespace Ogre
             return mStencilBufferBitDepth;
         }
 
-        /** Returns the number of matrices available to hardware vertex 
-        blending for this rendering system. */
-        ushort getNumVertexBlendMatrices(void) const
+        /// @deprecated do not use
+        OGRE_DEPRECATED ushort getNumVertexBlendMatrices(void) const
         {
             return mNumVertexBlendMatrices;
         }

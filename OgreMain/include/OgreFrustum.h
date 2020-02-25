@@ -171,25 +171,26 @@ namespace Ogre
         MaterialPtr mMaterial;
         mutable Vector3 mWorldSpaceCorners[8];
 
-        /// Is this frustum to act as a reflection of itself?
-        bool mReflect;
         /// Derived reflection matrix
         mutable Affine3 mReflectMatrix;
         /// Fixed reflection plane
         mutable Plane mReflectPlane;
-        /// Pointer to a reflection plane (automatically updated)
-        const MovablePlane* mLinkedReflectPlane;
         /// Record of the last world-space reflection plane info used
         mutable Plane mLastLinkedReflectionPlane;
-        
-        /// Is this frustum using an oblique depth projection?
-        bool mObliqueDepthProjection;
         /// Fixed oblique projection plane
         mutable Plane mObliqueProjPlane;
+
+        /// Pointer to a reflection plane (automatically updated)
+        const MovablePlane* mLinkedReflectPlane;
         /// Pointer to oblique projection plane (automatically updated)
         const MovablePlane* mLinkedObliqueProjPlane;
         /// Record of the last world-space oblique depth projection plane info used
         mutable Plane mLastLinkedObliqueProjPlane;
+
+        /// Is this frustum to act as a reflection of itself?
+        bool mReflect;
+        /// Is this frustum using an oblique depth projection?
+        bool mObliqueDepthProjection;
 
     public:
 
@@ -472,41 +473,23 @@ namespace Ogre
         */
         virtual bool isVisible(const Vector3& vert, FrustumPlane* culledBy = 0) const;
 
-        /// Overridden from MovableObject::getTypeFlags
-        uint32 getTypeFlags(void) const;
-
-        /** Overridden from MovableObject */
-        const AxisAlignedBox& getBoundingBox(void) const;
-
-        /** Overridden from MovableObject */
-        Real getBoundingRadius(void) const;
-
-        /** Overridden from MovableObject */
-        void _updateRenderQueue(RenderQueue* queue);
-
-        /** Overridden from MovableObject */
-        const String& getMovableType(void) const;
-
-        /** Overridden from MovableObject */
-        void _notifyCurrentCamera(Camera* cam);
+        uint32 getTypeFlags(void) const override;
+        const AxisAlignedBox& getBoundingBox(void) const override;
+        Real getBoundingRadius(void) const override;
+        void _updateRenderQueue(RenderQueue* queue) override;
+        const String& getMovableType(void) const override;
+        void _notifyCurrentCamera(Camera* cam) override;
 
         /// material to use for debug display
         void setMaterial(const MaterialPtr& mat);
 
-        /** Overridden from Renderable */
-        const MaterialPtr& getMaterial(void) const;
+        const MaterialPtr& getMaterial(void) const override;
+        void getRenderOperation(RenderOperation& op) override;
+        void getWorldTransforms(Matrix4* xform) const override;
+        Real getSquaredViewDepth(const Camera* cam) const override;
+        const LightList& getLights(void) const override;
 
-        /** Overridden from Renderable */
-        void getRenderOperation(RenderOperation& op);
-
-        /** Overridden from Renderable */
-        void getWorldTransforms(Matrix4* xform) const;
-
-        /** Overridden from Renderable */
-        Real getSquaredViewDepth(const Camera* cam) const;
-
-        /** Overridden from Renderable */
-        const LightList& getLights(void) const;
+        typedef Vector3 Corners[8];
 
         /** Gets the world space corners of the frustum.
         @remarks
@@ -514,7 +497,7 @@ namespace Ogre
             top-left near, bottom-left near, bottom-right near, 
             top-right far, top-left far, bottom-left far, bottom-right far.
         */
-        virtual const Vector3* getWorldSpaceCorners(void) const;
+        virtual const Corners& getWorldSpaceCorners(void) const;
 
         /** Sets the type of projection to use (orthographic or perspective). Default is perspective.
         */

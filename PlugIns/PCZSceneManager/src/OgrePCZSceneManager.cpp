@@ -372,7 +372,7 @@ namespace Ogre
         }
 
         Camera * c = OGRE_NEW PCZCamera( name, this );
-        mCameras.insert( CameraList::value_type( name, c ) );
+        mCameras.emplace(name, c);
 
         // create visible bounds aab map entry
         mCamVisibleObjectsMap[c] = VisibleObjectsBoundsInfo();
@@ -1077,29 +1077,16 @@ namespace Ogre
     //---------------------------------------------------------------------
     void PCZSceneManager::ensureShadowTexturesCreated()
     {
-        bool shadowTextureConfigDirty = mShadowTextureConfigDirty;
+        bool shadowTextureConfigDirty = mShadowRenderer.mShadowTextureConfigDirty;
         mShadowRenderer.ensureShadowTexturesCreated();
         if (!shadowTextureConfigDirty) return;
 
         size_t count = mShadowRenderer.mShadowTextureCameras.size();
         for (size_t i = 0; i < count; ++i)
         {
-            PCZSceneNode* node = (PCZSceneNode*)mSceneRoot->createChildSceneNode(
-                    mShadowRenderer.mShadowTextureCameras[i]->getName());
-            node->attachObject(mShadowRenderer.mShadowTextureCameras[i]);
+            auto node = (PCZSceneNode*)mShadowRenderer.mShadowTextureCameras[i]->getParentSceneNode();
             addPCZSceneNode(node, mDefaultZone);
         }
-    }
-    //---------------------------------------------------------------------
-    void PCZSceneManager::destroyShadowTextures(void)
-    {
-        size_t count = mShadowRenderer.mShadowTextureCameras.size();
-        for (size_t i = 0; i < count; ++i)
-        {
-            SceneNode* node = mShadowRenderer.mShadowTextureCameras[i]->getParentSceneNode();
-            mSceneRoot->removeAndDestroyChild(node);
-        }
-        SceneManager::destroyShadowTextures();
     }
     //---------------------------------------------------------------------
     void PCZSceneManager::fireShadowTexturesPreCaster(Light* light, Camera* camera, size_t iteration)

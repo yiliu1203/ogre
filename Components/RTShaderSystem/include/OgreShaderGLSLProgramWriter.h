@@ -37,7 +37,6 @@ namespace RTShader {
 
     class Function;
     class Program;
-    class FunctionInvocation;
 
 /** \addtogroup Optional
 *  @{
@@ -74,6 +73,7 @@ public:
 
     static String TargetLanguage;
 
+    static const char* getGL3CompatDefines();
 
     // Protected methods.
 protected:
@@ -86,10 +86,8 @@ protected:
     /** Write a local parameter. */
     void writeLocalParameter(std::ostream& os, ParameterPtr parameter);
 
-    /** Write forward declarations. This is needed so that we can attach library shader at a later step. */
-    void writeForwardDeclarations(std::ostream& os, Program* program);
-    void writeFunctionDeclaration(std::ostream& os, FunctionInvocation& func,
-                                  bool writeParamName = true);
+    /** Write the program dependencies. */
+    void writeProgramDependencies(std::ostream& os, Program* program);
 
     /** Write the input params of the function */
     void writeInputParameters(std::ostream& os, Function* function, GpuProgramType gpuType);

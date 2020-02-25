@@ -25,15 +25,6 @@ class _OgreSampleClassExport Sample_DualQuaternion : public SdkSample
         mInfo["Category"] = "Animation";
     }
 
-    void testCapabilities(const RenderSystemCapabilities* caps)
-    {
-        if (Root::getSingleton().getRenderSystem()->getName().find("OpenGL 3+") != String::npos)
-            OGRE_EXCEPT(Exception::ERR_NOT_IMPLEMENTED,
-                        "Sample currently out of order in the OpenGL 3+ render system."
-                        "  Try again soon!",
-                        "Sample_DualQuaternion::testCapabilities");
-    }
-
     bool frameRenderingQueued(const FrameEvent& evt)
     {
         const Real start = 30;
@@ -49,18 +40,13 @@ class _OgreSampleClassExport Sample_DualQuaternion : public SdkSample
     }
 
  protected:
-    StringVector getRequiredPlugins()
-    {
-        StringVector names;
-		if(!GpuProgramManager::getSingleton().isSyntaxSupported("glsl")
-		&& !GpuProgramManager::getSingleton().isSyntaxSupported("hlsl"))
-            names.push_back("Cg Program Manager");
-        return names;
-    }
-
     void setupContent()
     {
 #if defined(INCLUDE_RTSHADER_SYSTEM) && defined(RTSHADER_SYSTEM_BUILD_EXT_SHADERS)
+        // Make this viewport work with shader generator scheme.
+        mShaderGenerator->invalidateScheme(Ogre::RTShader::ShaderGenerator::DEFAULT_SCHEME_NAME);
+        mViewport->setMaterialScheme(RTShader::ShaderGenerator::DEFAULT_SCHEME_NAME);
+
         // Add the hardware skinning to the shader generator default
         // render state.
         mSrsHardwareSkinning = mShaderGenerator->createSubRenderState(Ogre::RTShader::HardwareSkinning::Type);
@@ -101,10 +87,9 @@ class _OgreSampleClassExport Sample_DualQuaternion : public SdkSample
         Light* l = mSceneMgr->createLight();
         Vector3 pos(30, 70, 40);
         l->setType(Light::LT_POINT);
-        mSceneMgr->getRootSceneNode()
-            ->createChildSceneNode(pos)
-            ->attachObject(l);
-        l->setDirection(-pos.normalisedCopy());
+        auto ln = mSceneMgr->getRootSceneNode()->createChildSceneNode(pos);
+        ln->attachObject(l);
+        ln->setDirection(-pos.normalisedCopy());
         l->setDiffuseColour(1, 1, 1);
         bbs->createBillboard(pos)->setColour(l->getDiffuseColour());
 
@@ -155,21 +140,6 @@ class _OgreSampleClassExport Sample_DualQuaternion : public SdkSample
         // as well.
         RTShader::HardwareSkinningFactory::getSingleton().prepareEntityForSkinning(ent);
         RTShader::HardwareSkinningFactory::getSingleton().prepareEntityForSkinning(entDQ, RTShader::ST_DUAL_QUATERNION, false, true);
-
-        // The following line is needed only because the spine models'
-        // materials have shaders and as such is not automatically
-        // reflected in the RTSS system.
-        RTShader::ShaderGenerator::getSingleton().createShaderBasedTechnique(
-            *ent->getSubEntity(0)->getMaterial(),
-            Ogre::MaterialManager::DEFAULT_SCHEME_NAME,
-            Ogre::RTShader::ShaderGenerator::DEFAULT_SCHEME_NAME,
-            true);
-
-        RTShader::ShaderGenerator::getSingleton().createShaderBasedTechnique(
-            *entDQ->getSubEntity(0)->getMaterial(),
-            Ogre::MaterialManager::DEFAULT_SCHEME_NAME,
-            Ogre::RTShader::ShaderGenerator::DEFAULT_SCHEME_NAME,
-            true);
 #endif
 
         // Create name and value for skinning mode.

@@ -50,11 +50,9 @@ if (WINDOWS_STORE OR WINDOWS_PHONE)
     set(SHORT_NAME ${EXE_NAME})
     set(PACKAGE_GUID "ef31484f-4f23-4b9f-8748-af5482696ae5")
     set(APP_MANIFEST_NAME Package.appxmanifest)
-    if(WINDOWS_PHONE AND "${CMAKE_SYSTEM_VERSION}" STREQUAL "8.0")
-        set(APP_MANIFEST_NAME WMAppManifest.xml)
-    endif()
+    string(SUBSTRING ${MSVC_VERSION} 0 2 MSVC_SHORT)
     configure_file(
-        ${OGRE_TEMPLATES_DIR}/Package_vc${MSVC_VERSION}.${CMAKE_SYSTEM_NAME}.appxmanifest.in
+        ${OGRE_TEMPLATES_DIR}/Package_vc${MSVC_SHORT}00.WindowsStore.appxmanifest.in
         ${CMAKE_CURRENT_BINARY_DIR}/${APP_MANIFEST_NAME}
         @ONLY)
 
@@ -72,7 +70,6 @@ if (WINDOWS_STORE OR WINDOWS_PHONE)
 
         ${PROJECT_BINARY_DIR}/inst/bin/resources.cfg
         ${PROJECT_BINARY_DIR}/inst/bin/plugins.cfg
-        ${PROJECT_BINARY_DIR}/inst/bin/quakemap.cfg
         ${PROJECT_BINARY_DIR}/inst/bin/samples.cfg
         ${PROJECT_BINARY_DIR}/inst/bin/tests.cfg
 
@@ -95,7 +92,6 @@ if (WINDOWS_STORE OR WINDOWS_PHONE)
         ${CMAKE_CURRENT_BINARY_DIR}/SplashScreen.png
         ${CMAKE_CURRENT_BINARY_DIR}/resources.cfg
         ${CMAKE_CURRENT_BINARY_DIR}/plugins.cfg
-        ${CMAKE_CURRENT_BINARY_DIR}/quakemap.cfg
         ${CMAKE_CURRENT_BINARY_DIR}/samples.cfg
         ${CMAKE_CURRENT_BINARY_DIR}/tests.cfg
     )
@@ -236,7 +232,6 @@ if (APPLE)
 		COMMAND ln ARGS -s -f ${PROJECT_BINARY_DIR}/bin/macosx/plugins.cfg   ${OGRE_SAMPLE_CONTENTS_PATH}/Resources/
 		COMMAND ln ARGS -s -f ${PROJECT_BINARY_DIR}/bin/macosx/resources.cfg ${OGRE_SAMPLE_CONTENTS_PATH}/Resources/
 		COMMAND ln ARGS -s -f ${PROJECT_BINARY_DIR}/bin/macosx/samples.cfg   ${OGRE_SAMPLE_CONTENTS_PATH}/Resources/
-		COMMAND ln ARGS -s -f ${PROJECT_BINARY_DIR}/bin/macosx/quakemap.cfg  ${OGRE_SAMPLE_CONTENTS_PATH}/Resources/
 		COMMAND ln ARGS -s -f ${PROJECT_SOURCE_DIR}/Media                    ${OGRE_SAMPLE_CONTENTS_PATH}/Resources/
 		COMMAND ditto ${PROJECT_SOURCE_DIR}/Samples/Common/misc/SampleBrowser_OSX.icns ${OGRE_SAMPLE_CONTENTS_PATH}/Resources
 		)
@@ -246,7 +241,6 @@ if (APPLE)
 		COMMAND ln ARGS -s -f ${PROJECT_BINARY_DIR}/bin/plugins.cfg 		${OGRE_SAMPLE_CONTENTS_PATH}/Resources/
 		COMMAND ln ARGS -s -f ${PROJECT_BINARY_DIR}/bin/resources.cfg 		${OGRE_SAMPLE_CONTENTS_PATH}/Resources/
 		COMMAND ln ARGS -s -f ${PROJECT_BINARY_DIR}/bin/samples.cfg   		${OGRE_SAMPLE_CONTENTS_PATH}/Resources/
-		COMMAND ln ARGS -s -f ${PROJECT_BINARY_DIR}/bin/quakemap.cfg  		${OGRE_SAMPLE_CONTENTS_PATH}/Resources/
 		COMMAND ln ARGS -s -f ${PROJECT_SOURCE_DIR}/Samples/Media     		${OGRE_SAMPLE_CONTENTS_PATH}/Resources/
 		COMMAND ditto ${PROJECT_SOURCE_DIR}/Samples/Common/misc/SampleBrowser_OSX.icns ${OGRE_SAMPLE_CONTENTS_PATH}/Resources
 		)
@@ -272,6 +266,7 @@ if (APPLE)
         Plugin_OctreeZone
         Plugin_ParticleFX
         Plugin_PCZSceneManager
+        Plugin_DotScene
         Codec_STBI
         Codec_FreeImage
         RenderSystem_GL
@@ -313,9 +308,8 @@ if (ANDROID)
 
     copy_assets_to_android_proj()
 
-    file(MAKE_DIRECTORY "${NDKOUT}/libs")
-    file(MAKE_DIRECTORY "${NDKOUT}/libs/${ANDROID_NDK_ABI_NAME}")
-    set_target_properties(SampleBrowser PROPERTIES LIBRARY_OUTPUT_DIRECTORY "${NDKOUT}/libs/${ANDROID_NDK_ABI_NAME}")
+    file(MAKE_DIRECTORY "${NDKOUT}/app/src/main/jniLibs/${ANDROID_NDK_ABI_NAME}")
+    set_target_properties(SampleBrowser PROPERTIES LIBRARY_OUTPUT_DIRECTORY "${NDKOUT}/app/src/main/jniLibs/${ANDROID_NDK_ABI_NAME}")
     set_target_properties(SampleBrowser PROPERTIES OUTPUT_NAME "OgreSampleBrowser")
 
     create_android_proj(SampleBrowser)

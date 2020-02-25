@@ -36,6 +36,7 @@ namespace Ogre {
     class GLContext;
     class GLSLProgramCommon;
     class GLNativeSupport;
+    class GLRTTManager;
 
     class _OgreGLExport GLRenderSystemCommon : public RenderSystem
     {
@@ -53,9 +54,25 @@ namespace Ogre {
         std::set<String> mExtensionList;
         String mVendor;
 
+        /** Manager object for creating render textures.
+            Direct render to texture via FBO is preferable
+            to pbuffers, which depend on the GL support used and are generally
+            unwieldy and slow. However, FBO support for stencil buffers is poor.
+        */
+        GLRTTManager *mRTTManager;
+
         void initConfigOptions();
         void refreshConfig();
-        NameValuePairList parseOptions(uint& w, uint& h, bool& fullscreen);
+
+        typedef std::list<GLContext*> GLContextList;
+        /// List of background thread contexts
+        GLContextList mBackgroundContextList;
+        OGRE_MUTEX(mThreadInitMutex);
+
+        /** One time initialization for the RenderState of a context. Things that
+            only need to be set once, like the LightingModel can be defined here.
+        */
+        virtual void _oneTimeContextInitialization() = 0;
     public:
         struct VideoMode {
             uint32 width;
@@ -118,26 +135,15 @@ namespace Ogre {
         void reinitialise(void)
         {
             this->shutdown();
-            this->_initialise(true);
+            this->_initialise();
         }
 
-        void _convertProjectionMatrix(const Matrix4& matrix, Matrix4& dest, bool)
-        {
-            // no conversion request for OpenGL
-            dest = matrix;
-        }
+        void _convertProjectionMatrix(const Matrix4& matrix, Matrix4& dest, bool);
 
-        void _makeProjectionMatrix(const Radian& fovy, Real aspect, Real nearPlane, Real farPlane,
-                                   Matrix4& dest, bool forGpuProgram = false);
-
-        void _makeProjectionMatrix(Real left, Real right, Real bottom, Real top,
-                                   Real nearPlane, Real farPlane, Matrix4& dest, bool forGpuProgram = false);
-
-        void _makeOrthoMatrix(const Radian& fovy, Real aspect, Real nearPlane, Real farPlane,
-                              Matrix4& dest, bool forGpuProgram = false);
-
-        void _applyObliqueDepthProjection(Matrix4& matrix, const Plane& plane,
-                                          bool forGpuProgram);
+        /// Mimics D3D9RenderSystem::_getDepthStencilFormatFor, if no FBO RTT manager, outputs GL_NONE
+        virtual void _getDepthStencilFormatFor(PixelFormat internalColourFormat,
+                                               uint32* depthFormat,
+                                               uint32* stencilFormat);
 
         /** Create VAO on current context */
         virtual uint32 _createVao() { return 0; }
@@ -149,6 +155,11 @@ namespace Ogre {
         virtual void _destroyFbo(GLContext* context, uint32 fbo) {}
         /** Complete destruction of VAOs and FBOs deferred while creator context was not current */
         void _completeDeferredVaoFboDestruction();
+
+        void registerThread();
+        void unregisterThread();
+        void preExtraThreadsStarted();
+        void postExtraThreadsStarted();
 
 #if OGRE_PLATFORM == OGRE_PLATFORM_ANDROID || OGRE_PLATFORM == OGRE_PLATFORM_EMSCRIPTEN
         virtual void resetRenderer(RenderWindow* pRenderWnd) = 0;

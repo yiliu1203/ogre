@@ -208,11 +208,10 @@ namespace Ogre {
         /// line width
         float mLineWidth;
         /// Point size, applies when not using per-vertex point size
-        Real mPointSize;
         Real mPointMinSize;
         Real mPointMaxSize;
-        /// Constant, linear, quadratic coeffs
-        Real mPointAttenuationCoeffs[3];
+        /// Size, Constant, linear, quadratic coeffs
+        Vector4f mPointAttenution;
         // TU Content type lookups
         typedef std::vector<unsigned short> ContentTypeLookup;
         mutable ContentTypeLookup mShadowContentTypeLookup;
@@ -406,7 +405,7 @@ namespace Ogre {
             This property determines what point size is used to render a point
             list.
         */
-        Real getPointSize(void) const;
+        float getPointSize(void) const { return mPointAttenution[0]; }
 
         /** Sets the point size of this pass.
 
@@ -422,7 +421,7 @@ namespace Ogre {
             get very large on screen, since they may get clamped on some cards. Upper sizes can range
             from 64 to 256 pixels.
         */
-        void setPointSize(Real ps);
+        void setPointSize(float ps) { mPointAttenution[0] = ps; }
 
         /** Sets whether points will be rendered as textured quads or plain dots
 
@@ -457,18 +456,20 @@ namespace Ogre {
         @param constant, linear, quadratic Parameters to the attenuation
             function defined above
         */
-        void setPointAttenuation(bool enabled,
-            Real constant = 0.0f, Real linear = 1.0f, Real quadratic = 0.0f);
+        void setPointAttenuation(bool enabled, float constant = 0.0f, float linear = 1.0f, float quadratic = 0.0f);
 
         /** Returns whether points are attenuated with distance. */
         bool isPointAttenuationEnabled(void) const;
 
         /** Returns the constant coefficient of point attenuation. */
-        Real getPointAttenuationConstant(void) const;
+        float getPointAttenuationConstant(void) const { return mPointAttenution[1]; }
         /** Returns the linear coefficient of point attenuation. */
-        Real getPointAttenuationLinear(void) const;
+        float getPointAttenuationLinear(void) const { return mPointAttenution[2]; }
         /** Returns the quadratic coefficient of point attenuation. */
-        Real getPointAttenuationQuadratic(void) const;
+        float getPointAttenuationQuadratic(void) const { return mPointAttenution[3]; }
+
+        /// get all point attenuation params as (size, constant, linear, quadratic)
+        const Vector4f& getPointAttenuation() const { return mPointAttenution; }
 
         /** Set the minimum point size, when point attenuation is in use. */
         void setPointMinSize(Real min);
@@ -1159,94 +1160,25 @@ namespace Ogre {
 
         bool hasGpuProgram(GpuProgramType programType) const;
 
-        /** Sets the details of the vertex program to use when rendering as a
-            shadow caster.
-            @remarks
-            Texture-based shadows require that the caster is rendered to a texture
-            in a solid colour (the shadow colour in the case of modulative texture
-            shadows). Whilst Ogre can arrange this for the fixed function
-            pipeline, passes which use vertex programs might need the vertex
-            programs still to run in order to preserve any deformation etc
-            that it does. However, lighting calculations must be a lot simpler,
-            with only the ambient colour being used (which the engine will ensure
-            is bound to the shadow colour).
-            @par
-            Therefore, it is up to implementors of vertex programs to provide an
-            alternative vertex program which can be used to render the object
-            to a shadow texture. Do all the same vertex transforms, but set the
-            colour of the vertex to the ambient colour, as bound using the
-            standard auto parameter binding mechanism.
-            @note
-            Some vertex programs will work without doing this, because Ogre ensures
-            that all lights except for ambient are set black. However, the chances
-            are that your vertex program is doing a lot of unnecessary work in this
-            case, since the other lights are having no effect, and it is good practice
-            to supply an alternative.
-            @note
-            This is only applicable to programmable passes.
-            @par
-            The default behaviour is for Ogre to switch to fixed-function
-            rendering if an explicit vertex program alternative is not set.
-        */
+        /// @deprecated use Ogre::Technique::setShadowCasterMaterial
         void setShadowCasterVertexProgram(const String& name);
-        /** Sets the vertex program parameters for rendering as a shadow caster.
-            @remarks
-            Only applicable to programmable passes, and this particular call is
-            designed for low-level programs; use the named parameter methods
-            for setting high-level program parameters.
-        */
+        /// @deprecated use Ogre::Technique::setShadowCasterMaterial
         void setShadowCasterVertexProgramParameters(GpuProgramParametersSharedPtr params);
-        /** Gets the name of the vertex program used by this pass when rendering shadow casters. */
+        /// @deprecated use Ogre::Technique::getShadowCasterMaterial
         const String& getShadowCasterVertexProgramName(void) const;
-        /** Gets the vertex program parameters used by this pass when rendering shadow casters. */
+        /// @deprecated use Ogre::Technique::getShadowCasterMaterial
         GpuProgramParametersSharedPtr getShadowCasterVertexProgramParameters(void) const;
-        /** Gets the vertex program used by this pass when rendering shadow casters,
-            only available after _load(). */
+        /// @deprecated use Ogre::Technique::getShadowCasterMaterial
         const GpuProgramPtr& getShadowCasterVertexProgram(void) const;
-
-        /** Sets the details of the fragment program to use when rendering as a
-            shadow caster.
-            @remarks
-            Texture-based shadows require that the caster is rendered to a texture
-            in a solid colour (the shadow colour in the case of modulative texture
-            shadows). Whilst Ogre can arrange this for the fixed function
-            pipeline, passes which use vertex programs might need the vertex
-            programs still to run in order to preserve any deformation etc
-            that it does. However, lighting calculations must be a lot simpler,
-            with only the ambient colour being used (which the engine will ensure
-            is bound to the shadow colour).
-            @par
-            Therefore, it is up to implementors of vertex programs to provide an
-            alternative vertex program which can be used to render the object
-            to a shadow texture. Do all the same vertex transforms, but set the
-            colour of the vertex to the ambient colour, as bound using the
-            standard auto parameter binding mechanism.
-            @note
-            Some vertex programs will work without doing this, because Ogre ensures
-            that all lights except for ambient are set black. However, the chances
-            are that your vertex program is doing a lot of unnecessary work in this
-            case, since the other lights are having no effect, and it is good practice
-            to supply an alternative.
-            @note
-            This is only applicable to programmable passes.
-            @par
-            The default behaviour is for Ogre to switch to fixed-function
-            rendering if an explicit fragment program alternative is not set.
-        */
+        /// @deprecated use Ogre::Technique::setShadowCasterMaterial
         void setShadowCasterFragmentProgram(const String& name);
-        /** Sets the fragment program parameters for rendering as a shadow caster.
-            @remarks
-            Only applicable to programmable passes, and this particular call is
-            designed for low-level programs; use the named parameter methods
-            for setting high-level program parameters.
-        */
+        /// @deprecated use Ogre::Technique::setShadowCasterMaterial
         void setShadowCasterFragmentProgramParameters(GpuProgramParametersSharedPtr params);
-        /** Gets the name of the fragment program used by this pass when rendering shadow casters. */
+        /// @deprecated use Ogre::Technique::getShadowCasterMaterial
         const String& getShadowCasterFragmentProgramName(void) const;
-        /** Gets the fragment program parameters used by this pass when rendering shadow casters. */
+        /// @deprecated use Ogre::Technique::getShadowCasterMaterial
         GpuProgramParametersSharedPtr getShadowCasterFragmentProgramParameters(void) const;
-        /** Gets the fragment program used by this pass when rendering shadow casters,
-            only available after _load(). */
+        /// @deprecated use Ogre::Technique::getShadowCasterMaterial
         const GpuProgramPtr& getShadowCasterFragmentProgram(void) const;
 
         /** Sets the details of the vertex program to use when rendering as a
@@ -1553,17 +1485,7 @@ namespace Ogre {
          */
         size_t getPassIterationCount(void) const { return mPassIterationCount; }
 
-        /** Applies texture names to Texture Unit State with matching texture name aliases.
-            All Texture Unit States within the pass are checked.
-            If matching texture aliases are found then true is returned.
-
-            @param
-            aliasList is a map container of texture alias, texture name pairs
-            @param
-            apply set true to apply the texture aliases else just test to see if texture alias matches are found.
-            @return
-            True if matching texture aliases were found in the pass.
-        */
+        /// @deprecated do not use
         bool applyTextureAliases(const AliasTextureNamePairList& aliasList, const bool apply = true) const;
 
         /** Sets whether or not this pass will be clipped by a scissor rectangle

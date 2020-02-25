@@ -81,6 +81,7 @@ THE SOFTWARE.
 #include "OgreResourceGroupManager.h"
 #include "OgreResource.h"
 #include "OgreRoot.h"
+#include "OgreShadowTextureManager.h"
 #include "OgreSceneManager.h"
 #include "OgreSceneNode.h"
 #include "OgreScriptCompiler.h"
@@ -100,9 +101,7 @@ THE SOFTWARE.
 #include "OgreTextureManager.h"
 #include "Threading/OgreThreadHeaders.h"
 #include "OgreUserObjectBindings.h"
-#include "OgreVector2.h"
-#include "OgreVector3.h"
-#include "OgreVector4.h"
+#include "OgreVector.h"
 #include "OgreWireBoundingBox.h"
 #if OGRE_NO_ZIP_ARCHIVE == 0
 #   include "OgreZip.h"

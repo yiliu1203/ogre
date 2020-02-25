@@ -192,9 +192,6 @@ namespace Ogre {
 
         // Bind shader parameters.
         RenderSystem* targetRenderSystem = Root::getSingleton().getRenderSystem();
-        targetRenderSystem->_setWorldMatrix(Matrix4::IDENTITY);
-        targetRenderSystem->_setViewMatrix(Matrix4::IDENTITY);
-        targetRenderSystem->_setProjectionMatrix(Matrix4::IDENTITY);
         if (r2vbPass->hasVertexProgram())
         {
             targetRenderSystem->bindGpuProgramParameters(GPT_VERTEX_PROGRAM,
@@ -217,11 +214,8 @@ namespace Ogre {
         // OGRE_CHECK_GL_ERROR(glBindBufferBase(GL_TRANSFORM_FEEDBACK_BUFFER, 0, VertexBuffer[mTargetBufferIndex]));
         OGRE_CHECK_GL_ERROR(glBindBufferBase(GL_TRANSFORM_FEEDBACK_BUFFER, 0, targetVertexBuffer->getGLBufferId()));
         // OGRE_CHECK_GL_ERROR(glBindVertexArray(VertexArray[mSourceBufferIndex]));
-        if (Root::getSingleton().getRenderSystem()->getCapabilities()->hasCapability(RSC_SEPARATE_SHADER_OBJECTS))
-        {
-            GLSLProgram* separableProgram = GLSLProgramManager::getSingleton().getActiveProgram();
-            separableProgram->activate();
-        }
+
+        GLSLProgramManager::getSingleton().getActiveProgram()->activate();
 
         // 'Render' data to the transform buffer.
         OGRE_CHECK_GL_ERROR(glBeginQuery(GL_TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN, mPrimitivesDrawnQuery));
